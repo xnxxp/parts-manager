@@ -1,0 +1,32 @@
+{
+  "name": "parts-manager",
+  "version": "2.0.20",
+  "description": "手机维修配件库存管理系统",
+  "dependencies": {
+    "cordova-android": "^14.0.1",
+    "docx": "^9.7.1"
+  },
+  "devDependencies": {
+    "cordova-plugin-camera": "^7.0.0",
+    "cordova-plugin-file": "^8.0.0",
+    "cordova-plugin-filepath": "^1.6.0",
+    "cordova-sqlite-storage": "^6.0.0"
+  },
+  "cordova": {
+    "plugins": {
+      "cordova-sqlite-storage": {},
+      "cordova-plugin-camera": {
+        "ANDROIDX_CORE_VERSION": "1.10.0",
+        "CAMERA_USAGE_DESCRIPTION": "拍摄配件图片",
+        "PHOTOLIBRARY_USAGE_DESCRIPTION": "选择配件图片"
+      },
+      "cordova-plugin-file": {
+        "ANDROIDX_LEGACY_CORE": "true"
+      },
+      "cordova-plugin-filepath": {}
+    },
+    "platforms": [
+      "android"
+    ]
+  }
+}

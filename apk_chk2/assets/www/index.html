@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>配件库存管理</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="配件管理">
+</head>
+<body>
+    <div id="app">
+        <div id="splash">
+            <div class="splash-content">
+                <div class="splash-icon">&#128722;</div>
+                <h1>配件库存管理</h1>
+                <p>手机维修配件管理系统</p>
+                <div class="splash-loader"><div class="loader-bar"></div></div>
+            </div>
+        </div>
+
+        <div id="main-app" style="display:none;">
+            <header class="app-header">
+                <h1>&#128722; 配件库存管理</h1>
+            </header>
+
+            <!-- Dashboard with warehouse stock management -->
+            <div id="page-dashboard" class="page active">
+                <div class="page-header">
+                    <h2>&#128200; 仓库库存</h2>
+                    <span class="refresh-btn" onclick="app.refreshDashboard()">&#8635; 刷新</span>
+                </div>
+                <!-- Compact stats bar -->
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-num" id="stat-warehouse">0</span>
+                        <span class="stat-lbl">仓库</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num" id="stat-parts">0</span>
+                        <span class="stat-lbl">配件</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-num" id="stat-stock">0</span>
+                        <span class="stat-lbl">库存</span>
+                    </div>
+                    <div class="stat-item stat-last">
+                        <span class="stat-num" id="stat-last-time">--</span>
+                        <span class="stat-lbl">上次操作</span>
+                    </div>
+                </div>
+                <div id="warehouse-stock-list"></div>
+            </div>
+
+            <!-- Inventory Form -->
+            <div id="page-inventory" class="page">
+                <div class="page-header">
+                    <h2>&#128230; 出入库</h2>
+                </div>
+                <div class="inventory-tabs">
+                    <button class="tab-btn active" data-type="in" onclick="inventoryManager.setType('in')">&#8593; 入库</button>
+                    <button class="tab-btn" data-type="out" onclick="inventoryManager.setType('out')">&#8595; 出库</button>
+                    <button class="tab-btn" data-type="transfer" onclick="inventoryManager.setType('transfer')">&#8644; 调拨</button>
+                </div>
+                <div class="card">
+                    <form id="inventory-form" onsubmit="inventoryManager.submit(event)">
+                        <div class="form-group">
+                            <label>配件名称 *</label>
+                            <input type="text" id="inv-part-name" required placeholder="如：iPhone14屏幕总成">
+                        </div>
+                        <div class="form-group" id="inv-brand-group">
+                            <label>供应商</label>
+                            <input type="text" id="inv-brand" placeholder="如：诚讯、创兴、百邦（可选）">
+                        </div>
+                        <div class="form-group" id="inv-price-group">
+                            <label>金额（元）</label>
+                            <input type="number" id="inv-price" step="0.01" min="0" placeholder="可选">
+                        </div>
+                        <div class="form-group" id="inv-condition-group">
+                            <label>新旧件</label>
+                            <div class="condition-radio">
+                                <label class="condition-label condition-new">
+                                    <input type="radio" name="inv-condition" value="new" checked> 新
+                                </label>
+                                <label class="condition-label condition-old">
+                                    <input type="radio" name="inv-condition" value="old"> 旧
+                                </label>
+                            </div>
+                        </div>
+                        <div class="form-group" id="inv-warehouse-group">
+                            <label>仓库 *</label>
+                            <select id="inv-warehouse" required>
+                                <option value="">请选择仓库</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="inv-to-warehouse-group" style="display:none;">
+                            <label>目标仓库 *</label>
+                            <select id="inv-to-warehouse">
+                                <option value="">请选择目标仓库</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>数量 *</label>
+                            <input type="number" id="inv-qty" min="1" required placeholder="输入数量">
+                        </div>
+                        <div class="form-group">
+                            <label>备注</label>
+                            <input type="text" id="inv-note" placeholder="可选备注">
+                        </div>
+                        <button type="submit" class="btn-primary">提交</button>
+                    </form>
+                </div>
+                <div class="card">
+                    <h3>最近记录</h3>
+                    <div id="inventory-records"><p class="empty-text">暂无记录</p></div>
+                </div>
+            </div>
+
+            <!-- Warehouse Management -->
+            <div id="page-warehouse" class="page">
+                <div class="page-header">
+                    <h2>&#127970; 仓库管理</h2>
+                    <span class="add-btn" onclick="warehouseManager.openAddModal()">+ 添加</span>
+                </div>
+                <div id="warehouse-list"></div>
+            </div>
+
+            <!-- Price Sheets -->
+            <div id="page-price" class="page">
+                <div class="page-header">
+                    <h2>&#128176; 价格表</h2>
+                    <span class="add-btn" onclick="priceManager.openAddModal()">+ 上传</span>
+                </div>
+                <div class="card">
+                    <p style="color:#888;font-size:13px;">上传价格表图片，点击条目可直接查看。</p>
+                </div>
+                <div id="price-list"></div>
+            </div>
+
+            <!-- Export -->
+            <div id="page-export" class="page">
+                <div class="page-header"><h2>&#128229; 数据导出</h2></div>
+                <div class="export-grid">
+                    <div class="export-card" onclick="exportManager.exportInventory()">
+                        <div class="export-icon">&#128230;</div><div class="export-title">导出库存数据</div><div class="export-desc">各仓库库存明细</div>
+                    </div>
+                    <div class="export-card" onclick="exportManager.exportRecords()">
+                        <div class="export-icon">&#128336;</div><div class="export-title">导出操作记录</div><div class="export-desc">全部出入库记录</div>
+                    </div>
+                    <div class="export-card" onclick="exportManager.exportPrice()">
+                        <div class="export-icon">&#128176;</div><div class="export-title">导出价格表清单</div><div class="export-desc">价格表文件清单</div>
+                    </div>
+                    <div class="export-card" onclick="exportManager.backupData()">
+                        <div class="export-icon">&#128190;</div><div class="export-title">备份数据</div><div class="export-desc">JSON备份</div>
+                    </div>
+                    <div class="export-card" onclick="document.getElementById('import-file').click()">
+                        <div class="export-icon">&#128190;</div><div class="export-title">恢复数据</div><div class="export-desc">从备份恢复</div>
+                    </div>
+                    <input type="file" id="import-file" accept=".json" style="display:none;" onchange="exportManager.importData(event)">
+                </div>
+            </div>
+
+            <!-- Bottom Nav -->
+            <nav class="bottom-nav">
+                <button class="nav-btn active" data-page="dashboard" onclick="app.navigate('dashboard')">
+                    <span class="nav-icon">&#128200;</span><span class="nav-label">仓库</span>
+                </button>
+                <button class="nav-btn" data-page="inventory" onclick="app.navigate('inventory')">
+                    <span class="nav-icon">&#128230;</span><span class="nav-label">出入库</span>
+                </button>
+                <button class="nav-btn" data-page="warehouse" onclick="app.navigate('warehouse')">
+                    <span class="nav-icon">&#127970;</span><span class="nav-label">仓库设置</span>
+                </button>
+                <button class="nav-btn" data-page="price" onclick="app.navigate('price')">
+                    <span class="nav-icon">&#128176;</span><span class="nav-label">价格表</span>
+                </button>
+                <button class="nav-btn" data-page="export" onclick="app.navigate('export')">
+                    <span class="nav-icon">&#128229;</span><span class="nav-label">导出</span>
+                </button>
+            </nav>
+        </div>
+        <div class="app-footer">Software developed by 曹大胖</div>
+
+        <!-- Warehouse Modal -->
+        <div id="modal-warehouse" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-warehouse-title">添加仓库</h3>
+                    <span class="modal-close" onclick="warehouseManager.closeModal()">&times;</span>
+                </div>
+                <form id="warehouse-form" onsubmit="warehouseManager.save(event)">
+                    <input type="hidden" id="warehouse-id">
+                    <div class="form-group">
+                        <label>仓库名称 *</label>
+                        <input type="text" id="warehouse-name" required placeholder="如：家里、背包、后备箱">
+                    </div>
+                    <div class="form-group">
+                        <label>仓库位置</label>
+                        <input type="text" id="warehouse-location" placeholder="如：二楼左侧">
+                    </div>
+                    <div class="form-group">
+                        <label>备注</label>
+                        <input type="text" id="warehouse-note" placeholder="可选备注">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="warehouseManager.closeModal()">取消</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Price Sheet Modal -->
+        <div id="modal-price" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>上传价格表</h3>
+                    <span class="modal-close" onclick="priceManager.closeModal()">&times;</span>
+                </div>
+                <form id="price-form" onsubmit="priceManager.save(event)">
+                    <div class="form-group">
+                        <label>标题 *</label>
+                        <input type="text" id="price-title" required placeholder="如：6月配件报价表">
+                    </div>
+                    <div class="form-group">
+                        <label>上传价格表图片</label>
+                        <div class="image-upload" onclick="document.getElementById('price-image-file').click()">
+                            <img id="price-image-preview" src="" style="display:none;">
+                            <div id="price-image-placeholder">
+                                <span class="upload-icon">&#128247;</span>
+                                <span>点击拍摄或选择图片</span>
+                            </div>
+                        </div>
+                        <input type="file" id="price-image-file" accept="image/*" style="display:none;" onchange="priceManager.handleImage(event)">
+                    </div>
+                    <div class="form-group">
+                        <label>备注</label>
+                        <input type="text" id="price-note" placeholder="可选备注">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-secondary" onclick="priceManager.closeModal()">取消</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Image Viewer -->
+        <div id="modal-image-viewer" class="modal" style="display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.95);">
+            <span class="modal-close" style="position:fixed;top:16px;right:16px;font-size:32px;color:#fff;z-index:301;cursor:pointer;" onclick="app.closeImageViewer()">&times;</span>
+            <img id="viewer-image" src="" style="max-width:95%;max-height:80vh;border-radius:8px;object-fit:contain;">
+        </div>
+
+        <!-- Edit Stock Modal -->
+        <div id="modal-edit-stock" class="modal" style="display:none;">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="edit-stock-title">编辑配件</h3>
+                    <span class="modal-close" onclick="app.closeEditStock()">&times;</span>
+                </div>
+                <form id="edit-stock-form" onsubmit="app.saveEditStock(event)">
+                    <input type="hidden" id="edit-stock-wh-id">
+                    <input type="hidden" id="edit-stock-part-id">
+                    <div class="form-group">
+                        <label>配件名称 *</label>
+                        <input type="text" id="edit-stock-name" required>
+                    </div>
+                    <div class="form-group">
+                        <label>供应商</label>
+                        <input type="text" id="edit-stock-brand" placeholder="可选">
+                    </div>
+                    <div class="form-group">
+                        <label>数量 *</label>
+                        <input type="number" id="edit-stock-qty" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>单价（元）</label>
+                        <input type="number" id="edit-stock-price" step="0.01" min="0" placeholder="可选">
+                    </div>
+                    <div class="form-actions">
+                        <button type="button" class="btn-danger" id="edit-stock-delete-btn" onclick="app.deleteStockItem()">删除</button>
+                        <button type="button" class="btn-secondary" onclick="app.closeEditStock()">取消</button>
+                        <button type="submit" class="btn-primary">保存</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Exit Confirm Modal -->
+        <div id="modal-exit" class="modal" style="display:none; align-items:center; justify-content:center;">
+            <div class="modal-content" style="border-radius:16px; text-align:center; padding:24px;">
+                <div style="font-size:48px;margin-bottom:8px;">&#128722;</div>
+                <h3 style="margin-bottom:8px;">退出应用</h3>
+                <p style="color:#888;font-size:14px;margin-bottom:16px;">确定要退出配件库存管理吗？</p>
+                <div class="form-actions">
+                    <button class="btn-secondary" onclick="app.closeExitModal()">取消</button>
+                    <button class="btn-danger" style="flex:1;padding:14px;border-radius:12px;font-size:15px;font-weight:600;" onclick="app.confirmExit()">退出</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast" class="toast" style="display:none;"></div>
+    </div>
+
+    <script src="libs/xlsx.full.min.js"></script>
+    <script src="js/database.js"></script>
+    <script src="js/app.js"></script>
+    <script src="js/warehouse.js"></script>
+    <script src="js/inventory.js"></script>
+    <script src="js/price.js"></script>
+    <script src="js/export.js"></script>
+</body>
+</html>

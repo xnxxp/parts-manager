@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>配件库存管理</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4F6EF7">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" value="default">
+    <meta name="apple-mobile-web-app-title" content="配件管理">
+</head>
+<body>
+<script>
+    // Error handler - must be FIRST script, before anything else
+    window._errorHandler = function(msg, url, line) {
+        var el = document.getElementById('error-overlay');
+        var txt = document.getElementById('error-text');
+        if (el && txt) {
+            txt.textContent = msg + '\nat ' + url + ':' + line;
+            el.style.display = 'block';
+        }
+    };
+    window.onerror = window._errorHandler;
+    window.addEventListener('unhandledrejection', function(e) {
+        var msg = e.reason;
+        if (msg instanceof Error) msg = msg.message + '\n' + (msg.stack || '');
+        window._errorHandler(msg, 'Promise', '');
+    });
+</script>
+<div id="app">
+    <!-- Splash -->
+    <div id="splash">
+        <div class="splash-content">
+            <div class="splash-icon">&#128722;</div>
+            <h1>配件库存管理</h1>
+            <p>手机维修配件管理系统 v2.0.2</p>
+            <div class="splash-loader"><div class="loader-bar"></div></div>
+        </div>
+    </div>
+
+    <div id="main-app" style="display:none;">
+
+        <!-- ===== HOME PAGE ===== -->
+        <div id="page-home" class="page active">
+            <!-- Sticky Header -->
+            <header class="app-header">
+                <h1>&#128722; 配件库存管理</h1>
+            </header>
+
+            <!-- Sticky Stats Bar (below header, above search) -->
+            <div class="stats-bar-top" id="stats-bar">
+                <div class="stat-item">
+                    <span class="stat-num" id="stat-total-value">¥0</span>
+                    <span class="stat-lbl">总金额</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="stat-parts">0</span>
+                    <span class="stat-lbl">配件</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-num" id="stat-stock">0</span>
+                    <span class="stat-lbl">库存</span>
+                </div>
+                <div class="stat-item stat-last">
+                    <span class="stat-num" id="stat-last-time">--</span>
+                    <span class="stat-lbl">上次操作</span>
+                </div>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="search-wrapper">
+                <div class="search-bar">
+                    <span class="search-icon">&#128269;</span>
+                    <input type="text" id="parts-search" placeholder="搜索配件名称..." oninput="partsManager.search()">
+                </div>
+            </div>
+
+            <!-- Category Filter Chips -->
+            <div class="category-scroll" id="category-scroll">
+                <button class="cat-chip active" data-cat="" onclick="partsManager.filterCategory('')">全部</button>
+            </div>
+
+            <!-- Parts List -->
+            <div id="parts-list"></div>
+        </div>
+
+        <!-- ===== PRICE PAGE ===== -->
+        <div id="page-price" class="page">
+            <div class="page-header">
+                <h2>&#128176; 价格表</h2>
+                <span class="add-btn" onclick="priceManager.openAddModal()">+ 上传</span>
+            </div>
+            <div class="card" style="margin-bottom:16px;">
+                <p style="color:#888;font-size:13px;margin:0;">上传价格表图片，点击条目可直接查看。</p>
+            </div>
+            <div id="price-list"></div>
+        </div>
+
+        <!-- ===== EXPORT PAGE ===== -->
+        <div id="page-export" class="page">
+            <div class="page-header"><h2>&#128229; 数据导出</h2></div>
+            <div class="export-grid">
+                <div class="export-card" onclick="exportManager.exportInventory()">
+                    <div class="export-icon">&#128230;</div><div class="export-title">导出库存数据</div><div class="export-desc">各仓库库存明细</div>
+                </div>
+                <div class="export-card" onclick="exportManager.exportRecords()">
+                    <div class="export-icon">&#128336;</div><div class="export-title">导出操作记录</div><div class="export-desc">全部出入库记录</div>
+                </div>
+                <div class="export-card" onclick="exportManager.exportPrice()">
+                    <div class="export-icon">&#128176;</div><div class="export-title">导出价格表清单</div><div class="export-desc">价格表文件清单</div>
+                </div>
+                <div class="export-card" onclick="exportManager.backupData()">
+                    <div class="export-icon">&#128190;</div><div class="export-title">备份数据</div><div class="export-desc">JSON备份</div>
+                </div>
+                <div class="export-card" onclick="document.getElementById('import-file').click()">
+                    <div class="export-icon">&#128190;</div><div class="export-title">恢复数据</div><div class="export-desc">从备份恢复</div>
+                </div>
+                <input type="file" id="import-file" accept=".json" style="display:none;" onchange="exportManager.importData(event)">
+            </div>
+
+            <!-- ===== Download Confirm Modal (used by all exports + backup) ===== -->
+            <div id="modal-download" class="modal" style="display:none;">
+                <div class="modal-content" style="text-align:center; padding:28px 24px;">
+                    <div style="font-size:48px;margin-bottom:12px;">&#128190;</div>
+                    <h3 style="margin-bottom:4px;">确认导出文件</h3>
+                    <p id="dl-file-name" style="color:#888;font-size:13px;margin:6px 0 4px;word-break:break-all;"></p>
+                    <p style="color:#c7c7cc;font-size:12px;">文件大小：<span id="dl-file-size"></span></p>
+                    <p style="color:#4F6EF7;font-size:12px;margin-top:8px;">保存到手机 Downloads 文件夹</p>
+                    <div class="form-actions" style="margin-top:20px;">
+                        <button class="btn-secondary" onclick="exportManager.closeDownloadModal()">取消</button>
+                        <button class="btn-primary" onclick="exportManager.confirmDownload()">下载保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bottom Nav -->
+        <nav class="bottom-nav">
+            <button class="nav-btn active" data-page="home" onclick="app.navigate('home')">
+                <span class="nav-icon">&#128230;</span><span class="nav-label">首页</span>
+            </button>
+            <button class="nav-btn" data-page="price" onclick="app.navigate('price')">
+                <span class="nav-icon">&#128176;</span><span class="nav-label">价格表</span>
+            </button>
+            <button class="nav-btn" data-page="export" onclick="app.navigate('export')">
+                <span class="nav-icon">&#128229;</span><span class="nav-label">导出</span>
+            </button>
+        </nav>
+
+        <!-- Floating Action Button (shown only on home page) -->
+        <button class="fab" id="fab-add" onclick="partsManager.openAddModal()" style="display:none;">+</button>
+
+        <!-- Footer (in normal flow, below nav) -->
+        <div class="app-footer">Software developed by 曹大胖</div>
+    </div>
+
+    <!-- ===== Photo Picker Modal (root level, outside main-app) ===== -->
+    <div id="modal-photo-picker" class="modal modal-center" style="display:none; z-index:210;">
+        <div class="modal-photo-content">
+            <span class="modal-photo-close" onclick="partsManager.closePhotoModal()">&#10005;</span>
+            <button type="button" class="modal-photo-option modal-photo-camera" onclick="partsManager.takePhoto('camera');partsManager.closePhotoModal();">
+                <span class="modal-photo-icon">&#128247;</span>
+                <span class="modal-photo-label">拍照</span>
+            </button>
+            <button type="button" class="modal-photo-option modal-photo-gallery" onclick="partsManager.takePhoto('gallery');partsManager.closePhotoModal();">
+                <span class="modal-photo-icon">&#128206;</span>
+                <span class="modal-photo-label">从相册上传</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== Save Image Modal (root level, outside main-app) ===== -->
+    <div id="modal-save-image" class="modal modal-center" style="display:none; z-index:310;">
+        <div class="modal-photo-content">
+            <span class="modal-photo-close" onclick="partsManager.closeSaveImageModal()">&#10005;</span>
+            <button type="button" class="modal-photo-option modal-photo-save" onclick="partsManager.saveCurrentImage()">
+                <span class="modal-photo-icon">&#128190;</span>
+                <span class="modal-photo-label">保存图片</span>
+            </button>
+            <button type="button" class="modal-photo-option modal-photo-delete" onclick="partsManager.deleteCurrentImage()">
+                <span class="modal-photo-icon">&#128465;</span>
+                <span class="modal-photo-label">删除图片</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== Add/Edit Part Modal ===== -->
+    <div id="modal-part" class="modal" style="display:none;">
+        <div class="modal-content modal-part-content">
+            <div class="modal-header">
+                <h3 id="modal-part-title">添加配件</h3>
+                <span class="modal-close" onclick="partsManager.closeModal()">&times;</span>
+            </div>
+            <form id="part-form" onsubmit="partsManager.save(event)">
+                <!-- 1. Name (required) -->
+                <div class="form-group">
+                    <label class="required">配件名称 *</label>
+                    <input type="text" id="part-name" required placeholder="如：iPhone14屏幕总成">
+                </div>
+
+                <!-- 2. Category (required) -->
+                <div class="form-group">
+                    <label class="required">配件分类 *</label>
+                    <div class="category-input-row">
+                        <select id="part-category" required onchange="partsManager.onCategoryChange()">
+                            <option value="">选择分类</option>
+                        </select>
+                        <button type="button" class="btn-add-cat" onclick="partsManager.showNewCatInput()" title="新建分类">+</button>
+                    </div>
+                    <div id="new-cat-row" style="display:none;margin-top:8px;">
+                        <div class="category-input-row">
+                            <input type="text" id="new-category-name" placeholder="输入新分类名称">
+                            <button type="button" class="btn-add-cat" onclick="partsManager.addCustomCategory()">确认</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Location (required) -->
+                <div class="form-group">
+                    <label class="required">存放位置 *</label>
+                    <input type="text" id="part-location" required placeholder="背包、家里、后备箱">
+                </div>
+
+                <!-- 4. Quantity (required) -->
+                <div class="form-group">
+                    <label class="required">数量 *</label>
+                    <input type="number" id="part-qty" min="0" required placeholder="输入数量">
+                </div>
+
+                <!-- 5. Price (optional) -->
+                <div class="form-group">
+                    <label>金额（元）</label>
+                    <input type="number" id="part-price" step="0.01" min="0" placeholder="可选">
+                </div>
+
+                <!-- 6. Supplier -->
+                <div class="form-group">
+                    <label>供应商</label>
+                    <input type="text" id="part-brand" placeholder="创兴、诚讯、百邦（可选）">
+                </div>
+
+                <!-- 7. Condition -->
+                <div class="form-group">
+                    <label class="required">新旧件 *</label>
+                    <div class="condition-radio">
+                        <label class="condition-label condition-new">
+                            <input type="radio" name="part-condition" value="new" checked> 新件
+                        </label>
+                        <label class="condition-label condition-old">
+                            <input type="radio" name="part-condition" value="old"> 旧件
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 8. Compatible Models -->
+                <div class="form-group">
+                    <label>适配机型</label>
+                    <input type="text" id="part-model" placeholder="多个机型用空格分开（可选）">
+                </div>
+
+                <!-- 9. Low Stock Warning -->
+                <div class="form-group">
+                    <label>低库存预警</label>
+                    <input type="number" id="part-min-stock" min="0" value="1" placeholder="低于此数量变红预警">
+                </div>
+
+                <!-- 10. Notes -->
+                <div class="form-group">
+                    <label>备注</label>
+                    <input type="text" id="part-note" placeholder="可选备注">
+                </div>
+
+                <!-- 11. Photo (optional) -->
+                <div class="form-group">
+                    <label>配件照片</label>
+                    <button type="button" class="btn-photo-trigger" onclick="partsManager.showPhotoModal()">
+                        &#128247; 拍照或上传图片
+                    </button>
+                    <img id="part-image-preview" src="" style="display:none;width:100%;border-radius:14px;margin-top:10px;">
+                </div>
+
+                <div class="form-actions form-actions-3col">
+                    <button type="button" class="btn-delete-small" id="part-delete-btn" onclick="partsManager.confirmDelete()" style="display:none;">删除</button>
+                    <button type="button" class="btn-secondary btn-cancel" onclick="partsManager.closeModal()">取消</button>
+                    <button type="submit" class="btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== Part Detail Modal ===== -->
+    <div id="modal-part-detail" class="modal" style="display:none;">
+        <div class="modal-content modal-part-content">
+            <div class="modal-header">
+                <h3>配件详情</h3>
+                <span class="modal-close" onclick="partsManager.closeDetail()">&times;</span>
+            </div>
+            <div id="part-detail-content"></div>
+        </div>
+    </div>
+
+    <!-- ===== Price Sheet Modal ===== -->
+    <div id="modal-price" class="modal" style="display:none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>上传价格表</h3>
+                <span class="modal-close" onclick="priceManager.closeModal()">&times;</span>
+            </div>
+            <form id="price-form" onsubmit="priceManager.save(event)">
+                <div class="form-group">
+                    <label>标题 *</label>
+                    <input type="text" id="price-title" required placeholder="如：6月配件报价表">
+                </div>
+                <div class="form-group">
+                    <label>上传价格表图片</label>
+                    <div class="image-upload" onclick="document.getElementById('price-image-file').click()">
+                        <img id="price-image-preview" src="" style="display:none;">
+                        <div id="price-image-placeholder">
+                            <span class="upload-icon">&#128247;</span>
+                            <span>点击拍摄或选择图片</span>
+                        </div>
+                    </div>
+                    <input type="file" id="price-image-file" accept="image/*" style="display:none;" onchange="priceManager.handleImage(event)">
+                </div>
+                <div class="form-group">
+                    <label>上传 Excel 文件（.xlsx）</label>
+                    <div class="excel-upload-area" onclick="document.getElementById('price-excel-file').click()">
+                        <span class="upload-icon">&#128200;</span>
+                        <span id="price-excel-name" style="color:#c7c7cc;font-size:13px;">点击选择 .xlsx 文件</span>
+                    </div>
+                    <input type="file" id="price-excel-file" accept="*/*" style="display:none;" onchange="priceManager.handleExcel(event)">
+                </div>
+                <div class="form-group">
+                    <label>备注</label>
+                    <input type="text" id="price-note" placeholder="可选备注">
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="priceManager.closeModal()">取消</button>
+                    <button type="submit" class="btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== Excel Viewer Modal ===== -->
+    <div id="modal-excel-viewer" class="modal modal-viewer" style="display:none;">
+        <div class="modal-content modal-excel-content">
+            <div class="modal-header">
+                <h3 id="excel-viewer-title">价格表</h3>
+                <span class="modal-close" onclick="priceManager.closeExcelViewer()">&times;</span>
+            </div>
+            <div id="excel-viewer-body" class="excel-viewer-body"></div>
+        </div>
+    </div>
+
+    <!-- ===== Image Viewer ===== -->
+    <div id="modal-image-viewer" class="modal" style="display:none; align-items:center; justify-content:center; background:rgba(0,0,0,0.95);">
+        <span class="modal-close" style="position:fixed;top:16px;right:16px;font-size:32px;color:#fff;z-index:301;cursor:pointer;" onclick="app.closeImageViewer()">&times;</span>
+        <img id="viewer-image" src="" style="max-width:95%;max-height:80vh;border-radius:8px;object-fit:contain;">
+    </div>
+
+    <!-- ===== Exit Confirm ===== -->
+    <div id="modal-exit" class="modal" style="display:none; align-items:center; justify-content:center;">
+        <div class="modal-content" style="border-radius:20px; text-align:center; padding:28px 24px;">
+            <div style="font-size:52px;margin-bottom:12px;">&#128722;</div>
+            <h3 style="margin-bottom:6px;font-size:18px;">确定要退出吗？</h3>
+            <div class="form-actions" style="margin-top:20px;">
+                <button class="btn-secondary" onclick="app.closeExitModal()">留下</button>
+                <button class="btn-danger" style="flex:1;padding:14px;border-radius:14px;font-size:15px;font-weight:700;" onclick="app.confirmExit()">退出</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="toast" style="display:none;"></div>
+
+    <!-- Error overlay (shows JS errors to user) -->
+    <div id="error-overlay" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.92); color:#fff; padding:30px 20px; overflow-y:auto;">
+        <div style="max-width:500px; margin:0 auto;">
+            <h2 style="color:#ff3b30; margin-bottom:12px; font-size:18px;">&#9888; 程序出错了</h2>
+            <p style="color:#aaa; font-size:13px; margin-bottom:16px;">请截图发给开发者：</p>
+            <div id="error-text" style="background:#1c1c1e; border-radius:12px; padding:16px; font-size:13px; line-height:1.6; word-break:break-all; font-family:monospace; max-height:60vh; overflow-y:auto; margin-bottom:20px;"></div>
+            <button onclick="location.reload()" style="width:100%; padding:16px; background:#4F6EF7; color:#fff; border:none; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer;">重新加载</button>
+        </div>
+    </div>
+
+    <!-- Off-screen camera input (display:none breaks on Android WebView) -->
+    <input type="file" id="camera-input" accept="image/*" capture="environment" style="position:absolute;left:-9999px;top:-9999px;width:1px;height:1px;opacity:0;">
+</div>
+
+<script src="libs/xlsx.full.min.js"></script>
+<script src="libs/jszip.min.js"></script>
+<script src="js/database.js"></script>
+<script src="js/app.js"></script>
+<script src="js/parts.js"></script>
+<script src="js/price.js"></script>
+<script src="js/export.js"></script>
+</body>
+</html>

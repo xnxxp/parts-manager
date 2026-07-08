@@ -1,0 +1,26 @@
+# Build outputs
+platforms/
+plugins/
+node_modules/
+build_output/
+*.apk
+*.apk.idsig
+
+# Gradle
+.gradle/
+gradle/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+build/
+
+# Temporary files
+~$*

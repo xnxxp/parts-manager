@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "配件库存管理",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8080"],
+      "cwd": "C:/Users/Suzao/Desktop/APK/www",
+      "port": 8080
+    }
+  ]
+}

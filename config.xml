@@ -1,0 +1,43 @@
+<?xml version='1.0' encoding='utf-8'?>
+<widget id="com.repair.partsmanager" version="2.0.20" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
+    <name>配件库存管理</name>
+    <description>手机维修配件库存管理系统</description>
+    <author email="repair@example.com" href="https://example.com">Repair Engineer</author>
+    <content src="index.html" />
+    <access origin="*" />
+    <allow-intent href="http://*/*" />
+    <allow-intent href="https://*/*" />
+    <allow-intent href="tel:*" />
+    <allow-intent href="sms:*" />
+    <allow-intent href="mailto:*" />
+    <allow-intent href="geo:*" />
+    <preference name="Orientation" value="portrait" />
+    <preference name="Fullscreen" value="false" />
+    <preference name="AndroidWindowSplashScreenAnimatedIcon" value="www/img/splash.png" />
+    <preference name="SplashScreen" value="screen" />
+    <preference name="SplashScreenDelay" value="3000" />
+    <preference name="FadeSplashScreenDuration" value="500" />
+    <preference name="android-minSdkVersion" value="24" />
+    <preference name="android-targetSdkVersion" value="35" />
+    <preference name="android-compileSdkVersion" value="35" />
+    <preference name="android-buildToolsVersion" value="35.0.0" />
+    <preference name="AndroidXEnabled" value="true" />
+    <preference name="android-build-tool" value="gradle" />
+    <platform name="android">
+        <preference name="AndroidPackageName" value="com.repair.partsmanager" />
+        <preference name="android-manifest/application/@android:hardwareAccelerated" value="true" />
+        <preference name="AndroidInsecureFileModeEnabled" value="true" />
+    </platform>
+    <plugin name="cordova-sqlite-storage" spec="^6.0.0" />
+    <plugin name="cordova-plugin-camera" spec="^7.0.0">
+        <variable name="CAMERA_USAGE_DESCRIPTION" value="拍摄配件图片" />
+        <variable name="PHOTOLIBRARY_USAGE_DESCRIPTION" value="选择配件图片" />
+    </plugin>
+    <plugin name="cordova-plugin-file" spec="^8.0.0">
+        <variable name="ANDROIDX_LEGACY_CORE" value="true" />
+    </plugin>
+    <plugin name="cordova-plugin-filepath" spec="^1.6.0" />
+    <feature name="OpenFile">
+        <param name="android-package" value="com.repair.partsmanager.OpenFilePlugin" />
+    </feature>
+</widget>
