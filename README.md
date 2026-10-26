@@ -1,6 +1,6 @@
 # 配件库存管理：项目交接
 
-更新：2026-10-27（北京时间）；工作目录：D:/APK；当前源码：2.2.6，已有 iOS 交付：2.2.5，Android 交付：2.2.3。v2.2.6 修复 iOS 选择安卓备份后没有反馈的问题，已通过本机检查，等待新安装包交付。
+更新：2026-10-27（北京时间）；工作目录：D:/APK；当前源码/iOS 交付：2.2.6，Android 交付：2.2.3。v2.2.6 修复 iOS 选择安卓备份后没有反馈的问题，已通过本机检查、云编译和本地签名；修复版尚需真机恢复验证。
 
 ## 目标与验收
 
@@ -39,7 +39,7 @@
 - v2.2.3 独立浏览器验证：320/390 像素无横向溢出；检查概览展开、分类收起、组合筛选/清除、搜索/空结果、多位置选择、零库存禁用、按选定位置增减、详情及编辑入口、空库存添加。没有页面运行错误。390 像素下首张卡片从约 400px 提前到 312px。截图：build/home-ui-{before,after}-390.png、build/home-ui-after-320.png、build/home-ui-filters-320.png、build/home-ui-location-320.png；均为隔离的测试数据。验证脚本：build/check-home-ui.cjs；打包与资源核对：build/package-home-release.cjs；交付校验信息：build/home-ui-release-result.json。
 - v2.2.4 本地和云端 64 项测试通过。隔离浏览器检查了 320/390/768 像素下的四个页面、详情/编辑/入库/上传/导出弹窗、分类和位置筛选、按位置加减、零库存禁用、自动备份开关与导出到 iOS 适配器；无横向溢出和页面异常。截图等待动画结束，位于 build/warm-{home,restock,price,export,detail,edit,receive,upload,download}-{320,390,768}.png。原生选择器使用模拟，不能替代真机验证。脚本：build/check-warm-ui.cjs；记录：build/warm-ui-checks.json；修改前副本：build/warm-ui-before-20261026/。
 - v2.2.5 本机和云端 64 项测试通过；`build/check-glass-ui.cjs` 检查 320/390/768 像素下的四页及主要弹窗、筛选、位置加减、备份开关与导出，同时确认滚动后末张卡片的加号可点击，以及减少透明度和减少动态效果的降级生效。截图：build/glass-{home,restock,price,export,detail,edit,receive,upload,download,opaque}-{320,390,768}.png。没有横向溢出或页面异常，原生接口仍为模拟。记录：build/glass-ui-checks.json；8 个业务 JS 与 v2.2.4 逐字节一致；修改前副本：build/glass-ui-before-20261026/。
-- v2.2.6 复现：`node build/repro-ios-restore.cjs` 在原入口模拟原生确认框被抑制，有效安卓 JSON 读完后没有任何窗口或提示；修复后应用内确认出现，原生 confirm 调用为 0。以用户提供的真实备份在隔离浏览器验证 320/390 像素下的取消后重选、确认恢复、数量/记录/价格表及照片引用一致、非法文件不覆盖、遮罩关闭后的清理。真实备份仅留本机，不进入源码包或 GitHub；具体核对记录在 build/restore-ui-checks.json，截图在 build/restore-{confirm,success}-{320,390}.png。修改前副本：build/restore-before-20261027/。
+- v2.2.6 复现：`node build/repro-ios-restore.cjs` 在原入口模拟原生确认框被抑制，有效安卓 JSON 读完后没有任何窗口或提示；修复后应用内确认出现，原生 confirm 调用为 0。以用户提供的真实备份在隔离浏览器验证 320/390 像素下的取消后重选、确认恢复、数量/记录/价格表及照片引用一致、非法文件不覆盖、遮罩关闭后的清理。72 项测试在本地和云端通过。真实备份仅留本机，不进入源码包或 GitHub；具体核对记录在 build/restore-ui-checks.json，截图在 build/restore-{confirm,success}-{320,390}.png。修改前副本：build/restore-before-20261027/。
 
 恢复故障的框架依据：[锁定的 Cordova iOS 8.1.1 源码](https://github.com/apache/cordova-ios/blob/rel/8.1.1/CordovaLib/Classes/Private/Plugins/CDVWebViewEngine/CDVWebViewEngine.m#L247)。该版本创建原生 UI 代理后未保留强引用；本次通过应用内确认绕开恢复入口对原生 JS 对话框的依赖，不升级框架，也不宣称覆盖所有原生对话框场景。
 
@@ -51,11 +51,11 @@
 - `ios/parts-native/` 提供文件导出选择器、照片选择/拍摄及原子本机备份写入。手动导出/图片保存通过系统“文件”选择位置，取消不报告保存成功；iOS 的 Cordova 回调按请求独立归属，不使用 Android 的无编号回调队列。
 - iOS 本机自动备份每 5 秒在前台检查，并保留原有切后台触发；保存成功且修订号一致才清除待备份标志。文件在应用 Documents/Backups，可通过“文件”App 查看。卸载应用会删除本机数据和本机备份，应定期手动导出至其他位置。
 - `.github/workflows/build-ios.yml` 在 `ios-port` 分支推送或手动启动时，用 macOS/Xcode 编译未签名 IPA，产物保留 7 天。工作流不读取、上传或保存个人证书及密码。通过显式的 `cordova-ios@8.1.1` 安装平台，使用 iOS 8 固定的 App.xcworkspace / App scheme，应用产物名为 PartsManager.app。
-- `node scripts/package-ios-source.js` 生成 `build/parts-manager-ios-source-2.2.5.zip`，仅打包网页、iOS 适配、必要脚本、测试、工作流和交接文档，排除证书、私钥、描述文件与整个 build 目录。
-- Windows 本地签名工具为官方 zsign v1.1.3，下载包 SHA-256 已与发布方提供的摘要核对；位于 build/zsign-v1.1.3/。本机签名入口：使用工作区 Python 执行 `build/sign-ios-local.py <未签名IPA路径>`，输出根目录的 `配件库存管理-iOS-v2.2.5.ipa`。证书材料保持在用户指定的本机文件夹，签名脚本及材料不进入源码包。
+- `node scripts/package-ios-source.js` 生成 `build/parts-manager-ios-source-2.2.6.zip`，仅打包网页、iOS 适配、必要脚本、测试、工作流和交接文档，排除证书、私钥、描述文件与整个 build 目录。
+- Windows 本地签名工具为官方 zsign v1.1.3，下载包 SHA-256 已与发布方提供的摘要核对；位于 build/zsign-v1.1.3/。本机签名入口：使用工作区 Python 执行 `build/sign-ios-local.py <未签名IPA路径>`，输出根目录的 `配件库存管理-iOS-v2.2.6.ipa`。证书材料保持在用户指定的本机文件夹，签名脚本及材料不进入源码包。
 - 初次 iOS 适配验证：8 项 iOS JS 适配测试及原有 56 项测试在本地和云端全部通过；生成的 JS、配置 XML 语法检查通过。隔离浏览器检查了 320/390 像素页面、备份导出到 Cordova 适配器和无横向溢出/页面异常；原生接口为模拟，截图为 build/ios-home-preview-{320,390}.png。当前 UI 的验证另见上方 v2.2.5 记录。
-- 云编译：[成功任务 40324212090](https://github.com/xnxxp/parts-manager/actions/runs/40324212090)，源码 commit：3c6d892e2d9b8870a6b300e1f3a9574093f18ca1。工程生成、原生插件安装、arm64 设备编译、IPA 打包和产物上传均通过；main 仍为 4b555ebb0a5bc2f607877c0b6ac441ec36262b06。
-- iOS 最新交付：[配件库存管理-iOS-v2.2.5.ipa](./配件库存管理-iOS-v2.2.5.ipa)，2,243,214 字节；SHA-256：E8D9BC6E5221A44DD9C35D71CA56D85E4B1B7B992D7475093CD6E4BE2EFE778C。仅适用于当前描述文件登记的设备，未上传到 GitHub。
+- 云编译：[成功任务 40366540310](https://github.com/xnxxp/parts-manager/actions/runs/40366540310)，源码 commit：06aa269e8de2bc0102129a8ecb8ba5ee41daa95c。工程生成、原生插件安装、arm64 设备编译、IPA 打包和产物上传均通过；main 仍为 4b555ebb0a5bc2f607877c0b6ac441ec36262b06。
+- iOS 最新交付：[配件库存管理-iOS-v2.2.6.ipa](./配件库存管理-iOS-v2.2.6.ipa)，2,249,776 字节；SHA-256：E673FF529C0AF3C247161E23C6A493F85EBEB4FE20EC6286CBE73315C2F8EF8E。仅适用于当前描述文件登记的设备，未上传到 GitHub。
 - 产物检查：云端下载 ZIP 与 GitHub 摘要一致，未签名 IPA 与构建生成的 SHA256.txt 一致；签名 IPA 的包名、版本、iOS 最低版本、arm64 架构、原生插件映射、权限说明和文件访问配置正确；23 个业务网页资源（含 warm.css）与生成目录逐字节一致，并确认包含 iOS Cordova 运行时、描述文件、资源签名清单和 Mach-O 签名。记录：build/ios-release-result.json、build/ios-cloud-state.json；核对脚本：build/verify-ios-package.py。
 - GitHub 已连接；用户已授权在公开仓库 [xnxxp/parts-manager 的 ios-port 分支](https://github.com/xnxxp/parts-manager/tree/ios-port) 发布本次适配。main 保持原状态（package.json 2.0.20）；证书和密码始终留在本机，仅云端生成的未签名 IPA 作为 Actions 产物保存。
 
@@ -65,10 +65,10 @@
 
 ## 未解决问题与下一步
 
-- 五项确认缺陷已修复；Android v2.2.3 / iOS v2.2.5 尚未在真实手机安装验证。异常路径测试使用隔离存储/IndexedDB/原生接口模拟，不等同于设备实测。
+- 五项既有确认缺陷已修复。用户已在 iOS v2.2.5 真机操作恢复入口，并报告选择安卓 JSON 后无反馈；v2.2.6 已修复该静默路径，仍需用户覆盖安装并在真机复核。其余异常路径测试使用隔离存储/IndexedDB/原生接口模拟，不等同于设备实测。
 - iOS 已编译和签名，但仍需在已登记的 iPhone 上验证安装、拍照/相册、文件导出取消与成功、带图片备份恢复、切后台与重开后的数据保留。迁移时可先从 Android 导出 JSON 备份，再在 iOS 的恢复数据入口选择该文件；两端仍使用相同备份结构。
 - 恢复中断可能留下未引用图片；当前保留原数据优先，未实现全面清理。保存超时后若原生一直不回调，本次运行会阻止后续保存，需要检查下载目录并重开应用。
-- 下一步：先在手机导出原数据备份，再覆盖安装 iOS v2.2.5，检查玻璃质感、滚动与切页流畅度、悬浮导航及弹窗，并验证原数据保留、位置加减、分批入库、带图片的备份恢复，以及手动保存与后台自动备份。若出现具体失败，再针对复现修复；无需扩展功能或升级依赖。
+- 下一步：覆盖安装 iOS v2.2.6 后，重新选择安卓 JSON，核对应用内摘要并点击“确认恢复”，检查恢复结果、库存、记录与照片。若有具体失败，使用窗口中持续显示的错误定位；不扩展无关功能或升级依赖。
 
 ## 相关文件与恢复工作入口
 
