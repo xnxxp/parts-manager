@@ -147,6 +147,7 @@ const app = {
     _closeModal(id) {
         const m = document.getElementById(id);
         if (!m || m.style.display === 'none') return;
+        if (id === 'modal-import' && !exportManager.beforeCloseImport()) return;
         // Remove from stack
         const idx = app._modalStack.lastIndexOf(id);
         if (idx >= 0) app._modalStack.splice(idx, 1);

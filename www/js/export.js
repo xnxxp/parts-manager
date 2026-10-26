@@ -1,6 +1,12 @@
 // export.js
 const exportManager = {
     _pendingExport: null,  // { blob, fileName }
+    _pendingImport: null,
+    _importReader: null,
+    _importInput: null,
+    _importRestoring: false,
+    _importState: 'closed',
+    _importSummary: '',
 
     async exportInventory() {
         const inventory = await DB.all('inventory');
@@ -314,26 +320,110 @@ const exportManager = {
         }
     },
 
-    // File parsing and confirmation stay outside the persistence operation.
+    _showImportState(state, message) {
+        this._importState = state;
+        document.getElementById('modal-import').dataset.state = state;
+        document.getElementById('import-title').textContent = {
+            reading: '正在读取备份', confirm: '确认恢复数据', restoring: '正在恢复数据',
+            success: '恢复完成', error: '无法恢复数据'
+        }[state];
+        document.getElementById('import-message').textContent = message;
+        const summary = document.getElementById('import-summary');
+        summary.textContent = this._importSummary;
+        summary.hidden = !['confirm', 'success'].includes(state);
+        document.getElementById('import-progress').hidden = !['reading', 'restoring'].includes(state);
+        const confirmButton = document.getElementById('import-confirm');
+        confirmButton.hidden = state !== 'confirm';
+        confirmButton.disabled = state !== 'confirm';
+        const closeButton = document.getElementById('import-close');
+        closeButton.textContent = ['reading', 'confirm'].includes(state) ? '取消' : '关闭';
+        closeButton.disabled = state === 'restoring';
+        document.getElementById('import-dismiss').disabled = state === 'restoring';
+    },
+
+    _showImportError(error) {
+        this._pendingImport = null;
+        this._showImportState('error', error instanceof SyntaxError ?
+            '恢复失败：文件格式错误，请选择 App 导出的 JSON 备份。' : (error.message || '恢复失败，请重试。'));
+    },
+
+    // Called by every modal close path, including backdrop taps and back actions.
+    beforeCloseImport() {
+        if (this._importRestoring) { app.showToast('正在恢复数据，请稍候'); return false; }
+        const reader = this._importReader;
+        this._importReader = null;
+        if (this._importInput) this._importInput.value = '';
+        this._importInput = null;
+        this._pendingImport = null;
+        this._importSummary = '';
+        this._importState = 'closed';
+        if (reader?.readyState === 1) reader.abort();
+        return true;
+    },
+
+    async confirmImport() {
+        if (!this._pendingImport || this._importRestoring) return;
+        const backup = this._pendingImport;
+        this._importRestoring = true;
+        this._showImportState('restoring', '正在恢复配件、库存、记录和图片，请稍候。');
+        try {
+            await this.restoreBackup(backup);
+            this._pendingImport = null;
+            this._showImportState('success', '数据已恢复，可以关闭窗口查看库存。');
+            app.showToast('数据恢复成功');
+            app.refreshDashboard();
+        } catch (error) {
+            this._showImportError(error);
+        } finally {
+            this._importRestoring = false;
+        }
+    },
+
+    // Parsing/confirmation stays outside persistence. Never use window.confirm:
+    // the iOS WebView may suppress native JavaScript dialogs and return false.
     importData(e) {
-        const file = e.target.files[0];
+        const input = e.target;
+        const file = input.files?.[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = async ev => {
-            try {
-                const backup = JSON.parse(ev.target.result);
-                this.validateBackup(backup);
-                if (!confirm('恢复数据将覆盖现有数据，确定继续？')) return;
-                await this.restoreBackup(backup);
-                app.showToast('数据恢复成功');
-                app.refreshDashboard();
-            } catch (err) {
-                console.error(err);
-                app.showToast(err instanceof SyntaxError ? '恢复失败：文件格式错误' : (err.message || '恢复失败'));
-            }
+        if (this._importReader || this._pendingImport || this._importRestoring) {
+            input.value = '';
+            app.showToast('请先完成当前的恢复操作');
+            return;
+        }
+        this._importInput = input;
+        this._importSummary = '';
+        document.getElementById('import-file-name').textContent = file.name;
+        this._showImportState('reading', '正在读取并检查备份文件，可以取消。');
+        app._openModal('modal-import');
+        const finishRead = () => {
+            this._importReader = null;
+            this._importInput = null;
+            input.value = '';
         };
-        reader.onerror = () => app.showToast('备份文件读取失败，请重试');
-        reader.readAsText(file);
-        e.target.value = '';
+        try {
+            const reader = this._importReader = new FileReader();
+            reader.onload = ev => {
+                if (this._importReader !== reader) return;
+                finishRead();
+                try {
+                    const backup = JSON.parse(ev.target.result);
+                    const data = this.validateBackup(backup);
+                    const images = new Set([...data.parts, ...data.prices].map(row => row.image).filter(Boolean)).size;
+                    this._importSummary = `${data.parts.length} 种配件 · ${data.parts.reduce((sum, part) => sum + part.qty, 0)} 件库存\n` +
+                        `${data.records.length} 条记录 · ${data.prices.length} 份价格表 · ${images} 张图片`;
+                    this._pendingImport = backup;
+                    this._showImportState('confirm', '恢复将覆盖当前配件、库存、记录和价格表。确认备份内容正确后再继续。');
+                } catch (error) { this._showImportError(error); }
+            };
+            reader.onerror = reader.onabort = () => {
+                if (this._importReader !== reader) return;
+                finishRead();
+                this._showImportError(new Error('备份文件读取失败或已中断，请重新选择文件。'));
+            };
+            reader.readAsText(file);
+        } catch (error) {
+            finishRead();
+            this._showImportError(new Error('备份文件无法读取，请重新选择本机可访问的 JSON 文件。'));
+        }
     }
 };

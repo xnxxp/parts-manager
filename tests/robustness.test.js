@@ -61,16 +61,23 @@ function fixture(options = {}) {
     const context = vm.createContext({ console: { error() {}, warn() {}, log() {} }, Blob, setTimeout, clearTimeout,
         localStorage: storage, navigator: {}, window: { addEventListener() {} },
         indexedDB: { open() { const req = {}; queueMicrotask(() => options.unavailable ? req.onerror() : req.onsuccess({ target: { result: database } })); return req; } },
-        confirm() { confirmed++; return true; },
+        confirm() { confirmed++; return !options.suppressConfirm; },
         FileReader: class {
-            readAsText(file) { readers.push(Promise.resolve(this.onload({ target: { result: file.text } }))); }
+            readAsText(file) {
+                this.readyState = 1;
+                if (options.fileReadThrows) throw new Error('file inaccessible');
+                if (options.holdFileRead) return;
+                this.readyState = 2;
+                readers.push(Promise.resolve(options.fileReadError ? this.onerror?.() : options.fileReadAbort ? this.onabort?.() : this.onload({ target: { result: file.text } })));
+            }
+            abort() { this.readyState = 2; this.aborted = true; this.onabort?.(); }
             readAsDataURL(blob) { readers.push(blob.arrayBuffer().then(buffer => {
                 this.result = 'data:application/json;base64,' + Buffer.from(buffer).toString('base64');
                 this.onload({ target: { result: this.result } });
             })); }
         },
         document: { addEventListener() {}, getElementById(id) {
-            if (!elements.has(id)) elements.set(id, { value: '', innerHTML: '', textContent: '', style: { display: 'none' } });
+            if (!elements.has(id)) elements.set(id, { value: '', innerHTML: '', textContent: '', dataset: {}, style: { display: 'none' } });
             return elements.get(id);
         } }
     });
@@ -81,15 +88,24 @@ function fixture(options = {}) {
     for (const method of ['_openModal', '_closeModal', 'updateStatsBar', 'refreshDashboard']) context.app[method] = () => {};
     context.partsManager.closeModal = context.partsManager.load = context.priceManager.load = () => {};
     context.partsManager.viewDetail = () => {};
+    const showImportState = context.exportManager._showImportState;
+    if (showImportState) context.exportManager._showImportState = function (state, ...args) {
+        if (state === 'confirm') confirmed++;
+        return showImportState.call(this, state, ...args);
+    };
     context.window.AndroidBridge = Object.fromEntries(['saveFile', 'saveFileReplace', 'saveImage'].map(method => [method,
         (...args) => calls.push({ method, args })]));
     return { ...context, storage, images, toasts, calls, readers, elements,
         snapshot: () => names.map(name => storage.getItem('parts_manager_' + name)),
         fail: name => { failKey = 'parts_manager_' + name; },
         quota: size => { quota = size; }, confirmed: () => confirmed,
-        async importFile(value) {
-            context.exportManager.importData({ target: { files: [{ text: JSON.stringify(value) }], value: 'x' } });
+        async importText(text, accept = true) {
+            context.exportManager.importData({ target: { files: [{ text, name: 'android.json' }], value: 'x' } });
             await Promise.all(readers);
+            if (accept && context.exportManager._pendingImport) await context.exportManager.confirmImport();
+        },
+        async importFile(value, accept = true) {
+            return this.importText(JSON.stringify(value), accept);
         }
     };
 }
@@ -117,6 +133,73 @@ test('valid empty backups and legacy inline photos can be restored', async () =>
     await f.importFile(empty);
     assert.equal((await f.DB.all('parts')).length, 0);
     assert.equal(f.toasts.at(-1), '数据恢复成功');
+});
+
+test('Android backup selection shows an in-app confirmation even when iOS suppresses native confirm; cancellation keeps all data', async () => {
+    const f = fixture({ suppressConfirm: true }); await f.DB.init(); const before = f.snapshot();
+    await f.importFile(backup(), false);
+    assert.equal(f.exportManager._importState, 'confirm');
+    assert.ok(f.elements.get('import-summary').textContent.includes('1 种配件'));
+    assert.deepEqual(f.snapshot(), before);
+    assert.equal(f.exportManager.beforeCloseImport(), true);
+    assert.equal(f.exportManager._pendingImport, null);
+    assert.deepEqual(f.snapshot(), before);
+    await f.importFile(backup(), false);
+    assert.equal(f.exportManager._importState, 'confirm', 'The same file can be selected after cancelling');
+});
+
+test('confirmed restore imports rows and photos once, reports success and cannot be dismissed during the write', async () => {
+    const f = fixture({ suppressConfirm: true }); await f.DB.init(); const b = backup();
+    b.data.parts[0].name = '安卓备份配件';
+    await f.importFile(b, false);
+    const first = f.exportManager.confirmImport();
+    const duplicate = f.exportManager.confirmImport();
+    assert.equal(f.exportManager.beforeCloseImport(), false);
+    await Promise.all([first, duplicate]);
+    assert.equal((await f.DB.get('parts', 1)).name, '安卓备份配件');
+    assert.equal(await f.DB.resolveImage((await f.DB.get('parts', 1)).image), photo);
+    assert.equal(f.exportManager._importState, 'success');
+    assert.equal(f.toasts.filter(text => text === '数据恢复成功').length, 1);
+    assert.equal(f.exportManager._pendingImport, null);
+    assert.equal(f.exportManager.beforeCloseImport(), true);
+});
+
+test('malformed JSON leaves a persistent import error and cannot overwrite current data', async () => {
+    const f = fixture(); await f.DB.init(); const before = f.snapshot();
+    await f.importText('{broken', false);
+    assert.equal(f.exportManager._importState, 'error');
+    assert.ok(f.elements.get('import-message').textContent.includes('文件格式错误'));
+    assert.equal(f.exportManager._pendingImport, null);
+    assert.deepEqual(f.snapshot(), before);
+});
+
+for (const option of ['fileReadError', 'fileReadAbort', 'fileReadThrows']) test('file reading failures give a persistent error: ' + option, async () => {
+    const f = fixture({ [option]: true }); await f.DB.init(); const before = f.snapshot();
+    await f.importFile(backup(), false);
+    assert.equal(f.exportManager._importState, 'error');
+    assert.ok(f.elements.get('import-message').textContent.includes('读取'));
+    assert.equal(f.exportManager._importReader, null);
+    assert.deepEqual(f.snapshot(), before);
+});
+
+test('closing during a file read aborts it and ignores a late result', async () => {
+    const f = fixture({ holdFileRead: true }); await f.DB.init(); const before = f.snapshot();
+    await f.importFile(backup(), false);
+    const reader = f.exportManager._importReader;
+    assert.equal(f.exportManager.beforeCloseImport(), true);
+    assert.equal(reader.aborted, true);
+    reader.onload({ target: { result: JSON.stringify(backup()) } });
+    assert.equal(f.exportManager._pendingImport, null);
+    assert.deepEqual(f.snapshot(), before);
+});
+
+test('a failed confirmed restore keeps the original data and displays the failure instead of success', async () => {
+    const f = fixture(); await f.DB.init(); const before = f.snapshot();
+    await f.importFile(backup(), false); f.fail('parts');
+    await f.exportManager.confirmImport();
+    assert.equal(f.exportManager._importState, 'error');
+    assert.deepEqual(f.snapshot(), before);
+    assert.ok(!f.toasts.includes('数据恢复成功'));
 });
 
 for (const name of ['stock_journal', ...names]) test('restore rolls back all tables on failed write: ' + name, async () => {

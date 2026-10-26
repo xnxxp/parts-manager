@@ -48,7 +48,7 @@
         <div class="splash-content">
             <div class="splash-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-box"/></svg></div>
             <h1>配件库存管理</h1>
-            <p>手机维修配件管理系统 v2.2.5</p>
+            <p>手机维修配件管理系统 v2.2.6</p>
             <div class="splash-loader"><div class="loader-bar"></div></div>
         </div>
     </div>
@@ -186,6 +186,24 @@
 
         <!-- Footer (in normal flow, below nav) -->
         <div class="app-footer">Software developed by 曹大胖</div>
+    </div>
+
+    <!-- Restore feedback stays visible after the native file picker dismisses. -->
+    <div id="modal-import" class="modal" role="dialog" aria-modal="true" aria-labelledby="import-title" data-state="closed" style="display:none;">
+        <div class="modal-content import-content">
+            <div class="modal-header">
+                <h3 id="import-title">恢复数据</h3>
+                <button type="button" id="import-dismiss" class="modal-close" aria-label="关闭恢复窗口" onclick="app._closeModal('modal-import')">×</button>
+            </div>
+            <p id="import-file-name" class="import-file-name"></p>
+            <div id="import-progress" class="import-progress" aria-hidden="true" hidden></div>
+            <p id="import-message" class="import-message" role="status" aria-live="polite"></p>
+            <p id="import-summary" class="import-summary" hidden></p>
+            <div class="form-actions">
+                <button type="button" id="import-close" class="btn-secondary" onclick="app._closeModal('modal-import')">取消</button>
+                <button type="button" id="import-confirm" class="btn-primary" onclick="exportManager.confirmImport()" hidden>确认恢复</button>
+            </div>
+        </div>
     </div>
 
     <!-- ===== Photo Picker Modal (root level, outside main-app) ===== -->
