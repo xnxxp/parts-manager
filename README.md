@@ -1,6 +1,6 @@
 # 配件库存管理：项目交接
 
-更新：2026-10-26（北京时间）；工作目录：D:/APK；当前源码版本：2.2.4；已有 Android/iOS 交付版本：2.2.3。v2.2.4 为温润简约 UI，本机验证完成后重新生成 iOS 安装包；尚未真机安装验证。
+更新：2026-10-26（北京时间）；工作目录：D:/APK；当前源码/iOS 交付版本：2.2.4，Android 交付仍为 2.2.3。v2.2.4 温润简约 UI 已通过本机检查、云编译和本地签名；尚未真机安装验证。
 
 ## 目标与验收
 
@@ -35,6 +35,7 @@
 - 签名证书 SHA-256：3788991930ea14d5b8341840b22205513ab1920bfbbd742a834410621403835a，与旧版一致。
 - 既有浏览器验证：320/390 像素宽度下的库存查询、位置过滤、补货和历史；测试数量 11＋1＝12，背包范围 0＋2＝2。截图位于 build/v2.2.0-{restock,history}-preview.png、build/v2.2.1-stock-preview.png。它们是测试数据，且不代表 v2.2.2 真机验证。
 - v2.2.3 独立浏览器验证：320/390 像素无横向溢出；检查概览展开、分类收起、组合筛选/清除、搜索/空结果、多位置选择、零库存禁用、按选定位置增减、详情及编辑入口、空库存添加。没有页面运行错误。390 像素下首张卡片从约 400px 提前到 312px。截图：build/home-ui-{before,after}-390.png、build/home-ui-after-320.png、build/home-ui-filters-320.png、build/home-ui-location-320.png；均为隔离的测试数据。验证脚本：build/check-home-ui.cjs；打包与资源核对：build/package-home-release.cjs；交付校验信息：build/home-ui-release-result.json。
+- v2.2.4 本地和云端 64 项测试通过。隔离浏览器检查了 320/390/768 像素下的四个页面、详情/编辑/入库/上传/导出弹窗、分类和位置筛选、按位置加减、零库存禁用、自动备份开关与导出到 iOS 适配器；无横向溢出和页面异常。截图等待动画结束，位于 build/warm-{home,restock,price,export,detail,edit,receive,upload,download}-{320,390,768}.png。原生选择器使用模拟，不能替代真机验证。脚本：build/check-warm-ui.cjs；记录：build/warm-ui-checks.json；修改前副本：build/warm-ui-before-20261026/。
 
 ## iOS 适配与交付
 
@@ -44,27 +45,27 @@
 - `ios/parts-native/` 提供文件导出选择器、照片选择/拍摄及原子本机备份写入。手动导出/图片保存通过系统“文件”选择位置，取消不报告保存成功；iOS 的 Cordova 回调按请求独立归属，不使用 Android 的无编号回调队列。
 - iOS 本机自动备份每 5 秒在前台检查，并保留原有切后台触发；保存成功且修订号一致才清除待备份标志。文件在应用 Documents/Backups，可通过“文件”App 查看。卸载应用会删除本机数据和本机备份，应定期手动导出至其他位置。
 - `.github/workflows/build-ios.yml` 在 `ios-port` 分支推送或手动启动时，用 macOS/Xcode 编译未签名 IPA，产物保留 7 天。工作流不读取、上传或保存个人证书及密码。通过显式的 `cordova-ios@8.1.1` 安装平台，使用 iOS 8 固定的 App.xcworkspace / App scheme，应用产物名为 PartsManager.app。
-- `node scripts/package-ios-source.js` 生成 `build/parts-manager-ios-source-2.2.3.zip`，仅打包网页、iOS 适配、必要脚本、测试、工作流和交接文档，排除证书、私钥、描述文件与整个 build 目录。
-- Windows 本地签名工具为官方 zsign v1.1.3，下载包 SHA-256 已与发布方提供的摘要核对；位于 build/zsign-v1.1.3/。本机签名入口：使用工作区 Python 执行 `build/sign-ios-local.py <未签名IPA路径>`，输出根目录的 `配件库存管理-iOS-v2.2.3.ipa`。证书材料保持在用户指定的本机文件夹，签名脚本及材料不进入源码包。
+- `node scripts/package-ios-source.js` 生成 `build/parts-manager-ios-source-2.2.4.zip`，仅打包网页、iOS 适配、必要脚本、测试、工作流和交接文档，排除证书、私钥、描述文件与整个 build 目录。
+- Windows 本地签名工具为官方 zsign v1.1.3，下载包 SHA-256 已与发布方提供的摘要核对；位于 build/zsign-v1.1.3/。本机签名入口：使用工作区 Python 执行 `build/sign-ios-local.py <未签名IPA路径>`，输出根目录的 `配件库存管理-iOS-v2.2.4.ipa`。证书材料保持在用户指定的本机文件夹，签名脚本及材料不进入源码包。
 - 当前验证：8 项 iOS JS 适配测试及原有 56 项测试在本地和云端全部通过；生成的 JS、配置 XML 语法检查通过。隔离浏览器检查了 320/390 像素页面、备份导出到 Cordova 适配器和无横向溢出/页面异常；原生接口为模拟，截图为 build/ios-home-preview-{320,390}.png。
-- 云编译：[成功任务 40273290447](https://github.com/xnxxp/parts-manager/actions/runs/40273290447)，源码 commit：4def6cff0d1bbe3a9438b31128735cc7391172e9。工程生成、原生插件安装、arm64 设备编译、IPA 打包和产物上传均通过。
-- iOS 最新交付：[配件库存管理-iOS-v2.2.3.ipa](./配件库存管理-iOS-v2.2.3.ipa)，2,221,612 字节；SHA-256：BE96ED3BBC09942722AE7CBE4A1AC7A3E60F5D2878C74EE3964C631258714B75。仅适用于当前描述文件登记的设备，未上传到 GitHub。
-- 产物检查：云端下载 ZIP 与 GitHub 摘要一致，未签名 IPA 与构建生成的 SHA256.txt 一致；签名 IPA 的包名、版本、iOS 最低版本、arm64 架构、原生插件映射、权限说明和文件访问配置正确；22 个业务网页资源与生成目录逐字节一致，并确认包含 iOS Cordova 运行时、描述文件、资源签名清单和 Mach-O 签名。记录：build/ios-release-result.json、build/ios-cloud-state.json；核对脚本：build/verify-ios-package.py。
+- 云编译：[成功任务 40322573248](https://github.com/xnxxp/parts-manager/actions/runs/40322573248)，源码 commit：e0a0919d6a78dac9cbd4cda17a3cbe103e8f5857。工程生成、原生插件安装、arm64 设备编译、IPA 打包和产物上传均通过；main 仍为 4b555ebb0a5bc2f607877c0b6ac441ec36262b06。
+- iOS 最新交付：[配件库存管理-iOS-v2.2.4.ipa](./配件库存管理-iOS-v2.2.4.ipa)，2,239,710 字节；SHA-256：ECA48F2D81D23F64BF10C6B72A3ADAFC08F982D3239B9C1443DE503D83C57EF0。仅适用于当前描述文件登记的设备，未上传到 GitHub。
+- 产物检查：云端下载 ZIP 与 GitHub 摘要一致，未签名 IPA 与构建生成的 SHA256.txt 一致；签名 IPA 的包名、版本、iOS 最低版本、arm64 架构、原生插件映射、权限说明和文件访问配置正确；23 个业务网页资源（含 warm.css）与生成目录逐字节一致，并确认包含 iOS Cordova 运行时、描述文件、资源签名清单和 Mach-O 签名。记录：build/ios-release-result.json、build/ios-cloud-state.json；核对脚本：build/verify-ios-package.py。
 - GitHub 已连接；用户已授权在公开仓库 [xnxxp/parts-manager 的 ios-port 分支](https://github.com/xnxxp/parts-manager/tree/ios-port) 发布本次适配。main 保持原状态（package.json 2.0.20）；证书和密码始终留在本机，仅云端生成的未签名 IPA 作为 Actions 产物保存。
 
 官方依据：[Cordova iOS 环境要求](https://cordova.apache.org/docs/en/latest/guide/platforms/ios/index.html)、[iOS 原生插件接口](https://cordova.apache.org/docs/en/latest/guide/platforms/ios/plugin.html)、[Apple 指定设备分发要求](https://developer.apple.com/help/account/provisioning-profiles/create-an-ad-hoc-provisioning-profile/)、[GitHub macOS 执行环境](https://docs.github.com/en/actions/reference/runners/github-hosted-runners)、[zsign 跨平台签名说明](https://github.com/zhlynn/zsign)。
 
 ## 未解决问题与下一步
 
-- 五项确认缺陷已修复；v2.2.3 尚未在真实手机安装验证。异常路径测试使用隔离存储/IndexedDB/原生接口模拟，不等同于设备实测。
+- 五项确认缺陷已修复；Android v2.2.3 / iOS v2.2.4 尚未在真实手机安装验证。异常路径测试使用隔离存储/IndexedDB/原生接口模拟，不等同于设备实测。
 - iOS 已编译和签名，但仍需在已登记的 iPhone 上验证安装、拍照/相册、文件导出取消与成功、带图片备份恢复、切后台与重开后的数据保留。迁移时可先从 Android 导出 JSON 备份，再在 iOS 的恢复数据入口选择该文件；两端仍使用相同备份结构。
 - 恢复中断可能留下未引用图片；当前保留原数据优先，未实现全面清理。保存超时后若原生一直不回调，本次运行会阻止后续保存，需要检查下载目录并重开应用。
-- 下一步：先在手机导出原数据备份，再覆盖安装 v2.2.3，检查首页统计/分类展开与快捷操作，并验证原数据保留、位置加减、分批入库、带图片的备份恢复，以及手动保存与后台自动备份。若出现具体失败，再针对复现修复；无需扩展功能或升级依赖。
+- 下一步：先在手机导出原数据备份，再覆盖安装 iOS v2.2.4，检查温润简约界面、首页统计/分类展开与快捷操作，并验证原数据保留、位置加减、分批入库、带图片的备份恢复，以及手动保存与后台自动备份。若出现具体失败，再针对复现修复；无需扩展功能或升级依赖。
 
 ## 相关文件与恢复工作入口
 
 - 业务：[stock.js](./www/js/stock.js)、[parts.js](./www/js/parts.js)、[restock.js](./www/js/restock.js)；持久化与备份：[database.js](./www/js/database.js)、[export.js](./www/js/export.js)；保存队列/导航：[app.js](./www/js/app.js)；价格表：[price.js](./www/js/price.js)。
-- 界面/缓存：www/index.html、www/css/style.css、www/service-worker.js；测试：tests/stock.test.js、tests/robustness.test.js；预览：npm start（127.0.0.1:8081）。
-- 网页重打包：node scripts/package-apk.js；输入壳：platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk；输出：build/parts-manager-2.2.3-unsigned.apk。先同步 www 到 platforms/android/app/src/main/assets/www，保持版本配置一致。本次改动前的文件副本在 build/home-ui-before-20261018/。
+- 界面/缓存：www/index.html、www/css/style.css、www/css/warm.css、www/service-worker.js；测试：tests/stock.test.js、tests/robustness.test.js、tests/ios.test.js；预览：npm start（127.0.0.1:8081）。
+- 网页重打包：node scripts/package-apk.js；输入壳：platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk；输出按 package.json 版本生成。先同步 www 到 platforms/android/app/src/main/assets/www，保持版本配置一致。build/package-home-release.cjs 是 2.2.3 的旧打包入口，重新交付 Android 时需先核对其固定版本断言；本次未重打包 Android。
 - 对齐/签名：使用 build/android-sdk/build-tools/34.0.0 下 zipalign.exe 的 -p -f 4，再用 apksigner.bat sign；JDK：build/jdk-17.0.11+9；原密钥：build/release-key.jks，别名 parts-manager，沿用现有本地签名配置，不生成新密钥。签后运行 apksigner verify、zipalign -c -p 4 并核对包内网页资源。aapt 遇中文文件名时使用 build/parts-manager-2.2.3.apk 副本。
 - [BUILD.md](./BUILD.md) 为旧版原生构建参考，其中 SQLite、仓库管理及调拨界面说明已过时；当前状态与网页打包流程以本交接为准。
