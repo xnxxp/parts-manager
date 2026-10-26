@@ -8,6 +8,9 @@ const settings = require('../ios/build-settings.json');
 const bundleId = process.env.IOS_BUNDLE_ID || settings.bundleId;
 if (!/^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$/.test(bundleId)) throw new Error('Invalid IOS_BUNDLE_ID');
 fs.mkdirSync(destination, { recursive: true });
+// Cordova 13 prefers a root containing platforms/ over www + config alone.
+// Without it, a nested target can resolve to the parent Android project.
+fs.mkdirSync(path.join(destination, 'platforms'), { recursive: true });
 fs.cpSync(path.join(root, 'www'), path.join(destination, 'www'), { recursive: true });
 fs.cpSync(path.join(root, 'ios/parts-native'), path.join(destination, 'local-plugins/parts-ios'), { recursive: true });
 for (const name of ['app', 'parts', 'export']) {

@@ -27,7 +27,9 @@ jobs:
       - name: Generate the Xcode project
         timeout-minutes: 4
         working-directory: build/ios-project
-        run: cordova platform add ios@8.1.1 --verbose
+        run: |
+          NODE_PATH="$(npm root -g)/cordova/node_modules" node -e "require('node:assert/strict').equal(require('cordova-lib/src/cordova/util').getProjectRoot(), process.cwd())"
+          cordova platform add cordova-ios@8.1.1 --verbose
       - name: Install native iOS bridge
         timeout-minutes: 4
         working-directory: build/ios-project
