@@ -5,13 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>配件库存管理</title>
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/warm.css">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4F6EF7">
+    <meta name="theme-color" content="#f6f4ee">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" value="default">
     <meta name="apple-mobile-web-app-title" content="配件管理">
 </head>
 <body>
+<svg class="icon-library" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="icon-box" viewBox="0 0 24 24"><path d="m12 3 9 5v8l-9 5-9-5V8l9-5Z M3 8l9 5 9-5 M12 13v8 M7.5 5.5l9 5"/></symbol>
+    <symbol id="icon-list" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="16" rx="2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="m8 12 1 1 2-2 M13 12h3 M8 17h8"/></symbol>
+    <symbol id="icon-file" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9l-6-6Z M14 3v6h6 M8 13h8 M8 17h5"/></symbol>
+    <symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 3v12 m-4-4 4 4 4-4 M5 14v5a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5"/></symbol>
+    <symbol id="icon-backup" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M3 9h18 M12 17v-5 m-3 3 3-3 3 3"/></symbol>
+    <symbol id="icon-restore" viewBox="0 0 24 24"><path d="M3 10a9 9 0 1 1 1 8 M3 4v6h6 M12 7v5l3 2"/></symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="icon-camera" viewBox="0 0 24 24"><path d="m8 6 2-3h4l2 3h3a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3Z"/><circle cx="12" cy="13" r="4"/></symbol>
+    <symbol id="icon-image" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8" cy="8" r="1.5"/><path d="m3 17 5-5 4 4 4-6 5 7"/></symbol>
+    <symbol id="icon-phone" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M10 5h4 M11 19h2"/></symbol>
+</defs></svg>
 <script>
     // Error handler - must be FIRST script, before anything else
     window._errorHandler = function(msg, url, line) {
@@ -33,9 +46,9 @@
     <!-- Splash -->
     <div id="splash">
         <div class="splash-content">
-            <div class="splash-icon">&#128722;</div>
+            <div class="splash-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-box"/></svg></div>
             <h1>配件库存管理</h1>
-            <p>手机维修配件管理系统 v2.2.3</p>
+            <p>手机维修配件管理系统 v2.2.4</p>
             <div class="splash-loader"><div class="loader-bar"></div></div>
         </div>
     </div>
@@ -99,39 +112,42 @@
 
         <div id="page-price" class="page">
             <div class="page-header">
-                <h2>&#128176; 价格表</h2>
-                <span class="add-btn" onclick="priceManager.openAddModal()">+ 上传</span>
+                <h2>价格表</h2>
+                <button type="button" class="add-btn" onclick="priceManager.openAddModal()">＋ 上传</button>
             </div>
-            <div class="card" style="margin-bottom:16px;">
-                <p style="color:#888;font-size:13px;margin:0;">上传价格表图片，点击条目可直接查看。</p>
-            </div>
+            <p class="page-intro">把供应商的报价放在一起，随时查阅。</p>
             <div id="price-list"></div>
         </div>
 
         <!-- ===== EXPORT PAGE ===== -->
         <div id="page-export" class="page">
-            <div class="page-header"><h2>&#128229; 数据导出</h2></div>
+            <div class="page-header"><h2>数据导出</h2></div>
+            <p class="page-intro">留一份记录，也留一份安心。</p>
             <div class="export-grid">
-                <div class="export-card" onclick="exportManager.exportInventory()">
-                    <div class="export-icon">&#128230;</div><div class="export-title">导出库存数据</div><div class="export-desc">各仓库库存明细</div>
+                <h3 class="export-section-label">表格导出</h3>
+                <div class="export-group">
+                    <button type="button" class="export-card" onclick="exportManager.exportInventory()">
+                        <span class="export-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-box"/></svg></span><span class="export-copy"><span class="export-title">导出库存数据</span><span class="export-desc">各位置的库存明细</span></span><span class="row-arrow" aria-hidden="true">›</span>
+                    </button>
+                    <button type="button" class="export-card" onclick="exportManager.exportRecords()">
+                        <span class="export-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-clock"/></svg></span><span class="export-copy"><span class="export-title">导出操作记录</span><span class="export-desc">全部出入库记录</span></span><span class="row-arrow" aria-hidden="true">›</span>
+                    </button>
+                    <button type="button" class="export-card" onclick="exportManager.exportPrice()">
+                        <span class="export-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-file"/></svg></span><span class="export-copy"><span class="export-title">导出价格表清单</span><span class="export-desc">价格表文件清单</span></span><span class="row-arrow" aria-hidden="true">›</span>
+                    </button>
                 </div>
-                <div class="export-card" onclick="exportManager.exportRecords()">
-                    <div class="export-icon">&#128336;</div><div class="export-title">导出操作记录</div><div class="export-desc">全部出入库记录</div>
-                </div>
-                <div class="export-card" onclick="exportManager.exportPrice()">
-                    <div class="export-icon">&#128176;</div><div class="export-title">导出价格表清单</div><div class="export-desc">价格表文件清单</div>
-                </div>
-                <div class="export-card" onclick="exportManager.backupData()">
-                    <div class="export-icon">&#128190;</div><div class="export-title">备份数据</div><div class="export-desc">JSON备份</div>
-                </div>
-                <div class="export-card" onclick="document.getElementById('import-file').click()">
-                    <div class="export-icon">&#128190;</div><div class="export-title">恢复数据</div><div class="export-desc">从备份恢复</div>
-                </div>
-                <div class="export-card" style="cursor:default;">
-                    <div class="export-icon">&#9208;</div><div class="export-title">自动备份</div><div class="export-desc">退出时自动存到 Download/PartsManager</div>
-                    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:#4F6EF7;">
-                        <input type="checkbox" id="auto-backup-toggle" onchange="app.setAutoBackup(this.checked)"> 启用
-                    </label>
+                <h3 class="export-section-label">数据备份</h3>
+                <div class="export-group">
+                    <button type="button" class="export-card" onclick="exportManager.backupData()">
+                        <span class="export-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-backup"/></svg></span><span class="export-copy"><span class="export-title">备份数据</span><span class="export-desc">完整备份，包含配件图片</span></span><span class="row-arrow" aria-hidden="true">›</span>
+                    </button>
+                    <button type="button" class="export-card" onclick="document.getElementById('import-file').click()">
+                        <span class="export-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-restore"/></svg></span><span class="export-copy"><span class="export-title">恢复数据</span><span class="export-desc">从 JSON 备份恢复</span></span><span class="row-arrow" aria-hidden="true">›</span>
+                    </button>
+                    <div class="export-card auto-backup-card">
+                        <span class="export-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-clock"/></svg></span><span class="export-copy"><label for="auto-backup-toggle" class="export-title">自动备份</label><span class="export-desc">退出时自动存到 Download/PartsManager</span></span>
+                        <input type="checkbox" role="switch" aria-label="启用自动备份" id="auto-backup-toggle" onchange="app.setAutoBackup(this.checked)">
+                    </div>
                 </div>
                 <input type="file" id="import-file" accept=".json" style="display:none;" onchange="exportManager.importData(event)">
             </div>
@@ -139,11 +155,11 @@
             <!-- ===== Download Confirm Modal (used by all exports + backup) ===== -->
             <div id="modal-download" class="modal" style="display:none;">
                 <div class="modal-content" style="text-align:center; padding:28px 24px;">
-                    <div style="font-size:48px;margin-bottom:12px;">&#128190;</div>
+                    <div class="dialog-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-export"/></svg></div>
                     <h3 style="margin-bottom:4px;">确认导出文件</h3>
-                    <p id="dl-file-name" style="color:#888;font-size:13px;margin:6px 0 4px;word-break:break-all;"></p>
-                    <p style="color:#c7c7cc;font-size:12px;">文件大小：<span id="dl-file-size"></span></p>
-                    <p style="color:#4F6EF7;font-size:12px;margin-top:8px;">保存到手机 Downloads 文件夹</p>
+                    <p id="dl-file-name" style="color:#7c8173;font-size:13px;margin:6px 0 4px;word-break:break-all;"></p>
+                    <p style="color:#959a8b;font-size:12px;">文件大小：<span id="dl-file-size"></span></p>
+                    <p style="color:#626f55;font-size:12px;margin-top:8px;">保存到手机 Downloads 文件夹</p>
                     <div class="form-actions" style="margin-top:20px;">
                         <button class="btn-secondary" onclick="exportManager.closeDownloadModal()">取消</button>
                         <button class="btn-primary" onclick="exportManager.confirmDownload()">下载保存</button>
@@ -155,16 +171,16 @@
         <!-- Bottom Nav -->
         <nav class="bottom-nav">
             <button class="nav-btn active" data-page="home" onclick="app.navigate('home')">
-                <span class="nav-icon">&#128230;</span><span class="nav-label">首页</span>
+                <span class="nav-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-box"/></svg></span><span class="nav-label">首页</span>
             </button>
             <button class="nav-btn" data-page="restock" onclick="app.navigate('restock')">
-                <span class="nav-icon">&#128221;</span><span class="nav-label">补货 <span id="restock-count" class="nav-count">0</span></span>
+                <span class="nav-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-list"/></svg></span><span class="nav-label">补货 <span id="restock-count" class="nav-count">0</span></span>
             </button>
             <button class="nav-btn" data-page="price" onclick="app.navigate('price')">
-                <span class="nav-icon">&#128176;</span><span class="nav-label">价格表</span>
+                <span class="nav-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-file"/></svg></span><span class="nav-label">价格表</span>
             </button>
             <button class="nav-btn" data-page="export" onclick="app.navigate('export')">
-                <span class="nav-icon">&#128229;</span><span class="nav-label">导出</span>
+                <span class="nav-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-export"/></svg></span><span class="nav-label">导出</span>
             </button>
         </nav>
 
@@ -177,11 +193,11 @@
         <div class="modal-photo-content">
             <span class="modal-photo-close" onclick="partsManager.closePhotoModal()">&#10005;</span>
             <button type="button" class="modal-photo-option modal-photo-camera" onclick="partsManager.takePhoto('camera');partsManager.closePhotoModal();">
-                <span class="modal-photo-icon">&#128247;</span>
+                <svg aria-hidden="true" class="ui-icon"><use href="#icon-camera"/></svg>
                 <span class="modal-photo-label">拍照</span>
             </button>
             <button type="button" class="modal-photo-option modal-photo-gallery" onclick="partsManager.takePhoto('gallery');partsManager.closePhotoModal();">
-                <span class="modal-photo-icon">&#128206;</span>
+                <svg aria-hidden="true" class="ui-icon"><use href="#icon-image"/></svg>
                 <span class="modal-photo-label">从相册上传</span>
             </button>
         </div>
@@ -192,7 +208,7 @@
         <div class="modal-photo-content">
             <span class="modal-photo-close" onclick="partsManager.closeSaveImageModal()">&#10005;</span>
             <button type="button" class="modal-photo-option modal-photo-camera" onclick="partsManager.saveCurrentImage()">
-                <span class="modal-photo-icon">&#128190;</span>
+                <svg aria-hidden="true" class="ui-icon"><use href="#icon-export"/></svg>
                 <span class="modal-photo-label">保存图片</span>
             </button>
         </div>
@@ -201,10 +217,10 @@
     <!-- ===== Confirm Delete Photo Modal ===== -->
     <div id="modal-confirm-photo" class="modal modal-center" style="display:none; z-index:320;">
         <div class="modal-content" style="max-width:300px;">
-            <div style="padding:18px 18px 6px;font-size:15px;line-height:1.5;">确定删除该配件的照片吗？<br><span style="color:#e67e22;font-size:12px;">此操作不可恢复。</span></div>
+            <div style="padding:18px 18px 6px;font-size:15px;line-height:1.5;">确定删除该配件的照片吗？<br><span style="color:#96652c;font-size:12px;">此操作不可恢复。</span></div>
             <div class="form-actions" style="padding:10px 18px 18px;">
                 <button type="button" class="btn-secondary" onclick="partsManager.cancelDeletePhoto()">取消</button>
-                <button type="button" onclick="partsManager.confirmDeletePhoto()" style="background:#e74c3c;color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:14px;">删除</button>
+                <button type="button" onclick="partsManager.confirmDeletePhoto()" style="background:#ad5b48;color:#fff;border:none;padding:9px 18px;border-radius:8px;cursor:pointer;font-size:14px;">删除</button>
             </div>
         </div>
     </div>
@@ -218,7 +234,7 @@
             </div>
             <form id="part-form" onsubmit="partsManager.save(event)">
                 <!-- Quick add from built-in iPhone (7-17) template catalog -->
-                <button type="button" onclick="catalogManager.open()" style="width:100%;padding:12px;margin-bottom:14px;border:1.5px dashed #4F6EF7;background:#eef0ff;color:#4F6EF7;border-radius:12px;font-size:14px;font-weight:600;">&#128241; 从模板添加 (iPhone 7-17)</button>
+                <button type="button" class="template-button" onclick="catalogManager.open()"><svg aria-hidden="true" class="ui-icon"><use href="#icon-phone"/></svg>从模板添加 (iPhone 7-17)</button>
                 <!-- 1. Name (required) -->
                 <div class="form-group">
                     <label class="required">配件名称 *</label>
@@ -305,7 +321,7 @@
                 <div class="form-group">
                     <label>配件照片</label>
                     <button type="button" class="btn-photo-trigger" onclick="partsManager.showPhotoModal()">
-                        &#128247; 拍照或上传图片
+                        <svg aria-hidden="true" class="ui-icon"><use href="#icon-camera"/></svg> 拍照或上传图片
                     </button>
                     <img id="part-image-preview" src="" style="display:none;width:100%;border-radius:14px;margin-top:10px;">
                     <button type="button" class="btn-delete-small" id="part-remove-photo-btn" onclick="partsManager.removeCurrentPhoto()" style="display:none;margin-top:8px;">移除照片</button>
@@ -384,7 +400,7 @@
                     <div class="image-upload" onclick="document.getElementById('price-image-file').click()">
                         <img id="price-image-preview" src="" style="display:none;">
                         <div id="price-image-placeholder">
-                            <span class="upload-icon">&#128247;</span>
+                            <svg aria-hidden="true" class="ui-icon upload-icon"><use href="#icon-image"/></svg>
                             <span>点击拍摄或选择图片</span>
                         </div>
                     </div>
@@ -393,8 +409,8 @@
                 <div class="form-group">
                     <label>上传 Excel 文件（.xlsx）</label>
                     <div class="excel-upload-area" onclick="document.getElementById('price-excel-file').click()">
-                        <span class="upload-icon">&#128200;</span>
-                        <span id="price-excel-name" style="color:#c7c7cc;font-size:13px;">点击选择 .xlsx 文件</span>
+                        <svg aria-hidden="true" class="ui-icon upload-icon"><use href="#icon-file"/></svg>
+                        <span id="price-excel-name" style="color:#959a8b;font-size:13px;">点击选择 .xlsx 文件</span>
                     </div>
                     <input type="file" id="price-excel-file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" style="display:none;" onchange="priceManager.handleExcel(event)">
                 </div>
@@ -430,7 +446,7 @@
     <!-- ===== Exit Confirm ===== -->
     <div id="modal-exit" class="modal" style="display:none; align-items:center; justify-content:center;">
         <div class="modal-content" style="border-radius:20px; text-align:center; padding:28px 24px;">
-            <div style="font-size:52px;margin-bottom:12px;">&#128722;</div>
+            <div class="dialog-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-box"/></svg></div>
             <h3 style="margin-bottom:6px;font-size:18px;">确定要退出吗？</h3>
             <div class="form-actions" style="margin-top:20px;">
                 <button class="btn-secondary" onclick="app.closeExitModal()">留下</button>
@@ -442,10 +458,10 @@
     <!-- ===== Backup Tip (first-launch safety net) ===== -->
     <div id="modal-backup-tip" class="modal" style="display:none; align-items:center; justify-content:center;">
         <div class="modal-content" style="border-radius:20px; text-align:center; padding:28px 24px; max-width:320px;">
-            <div style="font-size:46px;margin-bottom:10px;">&#128190;</div>
+            <div class="dialog-icon"><svg aria-hidden="true" class="ui-icon"><use href="#icon-backup"/></svg></div>
             <h3 style="margin-bottom:8px;font-size:17px;">建议先备份数据</h3>
-            <p style="color:#888;font-size:13px;line-height:1.6;margin-bottom:6px;">本 App 数据保存在手机本地，若误点「清除应用数据」会全部丢失。</p>
-            <p style="color:#4F6EF7;font-size:12px;line-height:1.5;margin-bottom:18px;">已为你开启「退出时自动备份」，文件保存到手机 <b>Download/PartsManager</b> 文件夹（清应用数据也不会丢）。</p>
+            <p style="color:#7c8173;font-size:13px;line-height:1.6;margin-bottom:6px;">本 App 数据保存在手机本地，若误点「清除应用数据」会全部丢失。</p>
+            <p style="color:#626f55;font-size:12px;line-height:1.5;margin-bottom:18px;">已为你开启「退出时自动备份」，文件保存到手机 <b>Download/PartsManager</b> 文件夹（清应用数据也不会丢）。</p>
             <div class="form-actions" style="margin-top:8px;">
                 <button class="btn-secondary" onclick="app.backupTipLater()">暂不</button>
                 <button class="btn-primary" onclick="app.backupTipNow()">立即备份</button>
@@ -460,7 +476,7 @@
     <div id="modal-catalog" class="modal" style="display:none;">
         <div class="modal-content" style="max-width:420px;max-height:86vh;overflow-y:auto;">
             <div class="modal-header">
-                <h3>&#128241; 从模板添加 (iPhone 7-17)</h3>
+                <h3>从模板添加 (iPhone 7-17)</h3>
                 <span class="modal-close" onclick="catalogManager.close()">&times;</span>
             </div>
             <div style="padding:4px 16px 16px;">
@@ -493,9 +509,9 @@
     <div id="error-overlay" style="display:none; position:fixed; inset:0; z-index:99999; background:rgba(0,0,0,0.92); color:#fff; padding:30px 20px; overflow-y:auto;">
         <div style="max-width:500px; margin:0 auto;">
             <h2 style="color:#ff3b30; margin-bottom:12px; font-size:18px;">&#9888; 程序出错了</h2>
-            <p style="color:#aaa; font-size:13px; margin-bottom:16px;">请截图发给开发者：</p>
+            <p style="color:#8c9181; font-size:13px; margin-bottom:16px;">请截图发给开发者：</p>
             <div id="error-text" style="background:#1c1c1e; border-radius:12px; padding:16px; font-size:13px; line-height:1.6; word-break:break-all; font-family:monospace; max-height:60vh; overflow-y:auto; margin-bottom:20px;"></div>
-            <button onclick="location.reload()" style="width:100%; padding:16px; background:#4F6EF7; color:#fff; border:none; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer;">重新加载</button>
+            <button onclick="location.reload()" style="width:100%; padding:16px; background:#626f55; color:#fff; border:none; border-radius:14px; font-size:16px; font-weight:700; cursor:pointer;">重新加载</button>
         </div>
     </div>
 

@@ -5,9 +5,12 @@
   "start_url": "./index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#f5f6fa",
-  "theme_color": "#667eea",
-  "categories": ["business", "productivity"],
+  "background_color": "#f6f4ee",
+  "theme_color": "#626f55",
+  "categories": [
+    "business",
+    "productivity"
+  ],
   "icons": [
     {
       "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23667eea' width='100' height='100' rx='20'/><text x='50' y='68' font-size='55' text-anchor='middle' fill='white'>🔧</text></svg>",

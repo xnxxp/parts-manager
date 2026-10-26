@@ -21,13 +21,13 @@ const priceManager = {
     render(rows) {
         const el = document.getElementById('price-list');
         if (!rows.length) {
-            el.innerHTML = '<p class="empty-text">&#128200; 暂无价格表，点击右上角上传</p>';
+            el.innerHTML = '<p class="empty-text"><svg class="ui-icon" aria-hidden="true"><use href="#icon-file"/></svg>暂无价格表，点击右上角上传</p>';
             return;
         }
         el.innerHTML = rows.map(r => {
-            const imgLabel = r.image ? '<span style="background:#eef0ff;color:#667eea;padding:3px 10px;border-radius:6px;font-size:12px;">&#128247; 图片</span>' : '';
-            const excelLabel = r.excel_data ? '<span class="excel-badge">&#128200; Excel</span>' : '';
-            const subtitle = r.note ? '<div style="font-size:12px;color:#888;margin-top:2px;">' + escapeHtml(r.note) + '</div>' : '';
+            const imgLabel = r.image ? '<span class="price-badge"><svg class="ui-icon" aria-hidden="true"><use href="#icon-image"/></svg>图片</span>' : '';
+            const excelLabel = r.excel_data ? '<span class="price-badge"><svg class="ui-icon" aria-hidden="true"><use href="#icon-file"/></svg>Excel</span>' : '';
+            const subtitle = r.note ? '<div class="price-note">' + escapeHtml(r.note) + '</div>' : '';
             const thumb = r.image ? `<div class="price-thumb" onclick="event.stopPropagation();app.showImageViewer('${r.image.replace(/'/g, "\\'")}')"><img src="${r.image}" alt=""></div>` : '';
 
             // onclick: if has excel, open excel viewer; else open image viewer
@@ -43,13 +43,13 @@ const priceManager = {
             return `<div class="price-item" onclick="${clickAction}">
                 <div class="price-header">
                     <div style="flex:1;min-width:0;">
-                        <div class="price-name">&#128200; ${escapeHtml(r.title || '未命名')}</div>
+                        <div class="price-name">${escapeHtml(r.title || '未命名')}</div>
                         <div class="price-date">${new Date(r.created_at * 1000).toLocaleString()}</div>
                         ${subtitle}
                     </div>
                     <button class="btn-delete" onclick="event.stopPropagation();priceManager.deleteItem(${r.id})">删除</button>
                 </div>
-                <div style="display:flex;gap:8px;margin-top:10px;align-items:center;flex-wrap:wrap;">
+                <div class="price-badges">
                     ${imgLabel}${excelLabel}
                 </div>
                 ${thumb ? '<div style="margin-top:12px;">' + thumb + '</div>' : ''}
@@ -113,7 +113,7 @@ const priceManager = {
             app.currentExcelData = ev.target.result;  // base64
             const nameEl = document.getElementById('price-excel-name');
             nameEl.textContent = file.name;
-            nameEl.style.color = '#34c759';
+            nameEl.style.color = '#718760';
             nameEl.style.fontWeight = '600';
             const area = document.querySelector('.excel-upload-area');
             if (area) area.classList.add('has-file');

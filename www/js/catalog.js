@@ -125,11 +125,11 @@ const catalogManager = {
         if (this._model && this._type && this._quality) {
             const name = this._model + ' ' + this._type + '(' + this._quality + ')';
             el.textContent = '将生成：' + name + '   ·   分类：' + this._cat;
-            el.style.color = '#4F6EF7';
+            el.style.color = '#626f55';
             btn.disabled = false;
         } else {
             el.textContent = '请依次选择 系列 → 机型 → 配件类型 → 品质';
-            el.style.color = '#aaa';
+            el.style.color = '#8c9181';
             btn.disabled = true;
         }
     },

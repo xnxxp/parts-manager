@@ -17,11 +17,11 @@ const partsManager = {
 
     getCategoryColor(cat) {
         const map = {
-            '屏幕': '#4F6EF7', '电池': '#f59e0b', '排线': '#10b981',
+            '屏幕': '#626f55', '电池': '#f59e0b', '排线': '#10b981',
             '摄像头': '#8b5cf6', '壳/后盖': '#ec4899', '按键': '#06b6d4',
             '充电口': '#f97316', '扬声器': '#6366f1', '其他': '#94a3b8'
         };
-        return map[cat] || '#667eea';
+        return map[cat] || '#71815f';
     },
 
     getCategoryClass(cat) {
@@ -514,7 +514,7 @@ const partsManager = {
         ).join('');
 
         const condLabel = part.condition === 'old' ? '旧件' : '新件';
-        const condColor = part.condition === 'old' ? '#e67e22' : '#27ae60';
+        const condColor = part.condition === 'old' ? '#96652c' : '#697e57';
 
         const pName = escapeHtml(part.name);
         const pCategory = escapeHtml(part.category);
@@ -527,18 +527,18 @@ const partsManager = {
             <div class="detail-section">
                 <h4>基本信息</h4>
                 <div class="detail-row"><span class="detail-label">名称</span><span class="detail-value">${pName}</span></div>
-                <div class="detail-row"><span class="detail-label">分类</span><span class="detail-value" style="color:${this.getCategoryColor(part.category)};font-weight:700;">${pCategory}</span></div>
+                <div class="detail-row"><span class="detail-label">分类</span><span class="detail-value">${pCategory}</span></div>
                 <div class="detail-row"><span class="detail-label">新旧件</span><span class="detail-value" style="color:${condColor};font-weight:600;">${condLabel}</span></div>
                 ${part.brand ? '<div class="detail-row"><span class="detail-label">供应商</span><span class="detail-value">' + pBrand + '</span></div>' : ''}
                 ${part.model ? '<div class="detail-row"><span class="detail-label">适配机型</span><span class="detail-value">' + pModel + '</span></div>' : ''}
                 <div class="detail-row"><span class="detail-label">低库存预警</span><span class="detail-value">${part.min_stock === 0 ? '已关闭' : (part.min_stock ?? 1) + ' 件'}</span></div>
                 ${part.note ? '<div class="detail-row"><span class="detail-label">备注</span><span class="detail-value">' + pNote + '</span></div>' : ''}
-                ${part.unit_price ? '<div class="detail-row"><span class="detail-label">单价</span><span class="detail-value" style="color:#e67e22;">¥' + pPrice + '</span></div>' : ''}
-                ${imageSrc ? '<div style="margin-top:8px;"><img src="' + imageSrc + '" data-part-id="' + part.id + '" style="max-width:100%;border-radius:8px;" onclick="app.showImageViewer(this.src)"></div><div style="margin-top:6px;"><button type="button" onclick="partsManager.requestDeletePhoto(' + part.id + ')" style="background:#e74c3c;color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;">&#128465; 删除照片</button></div>' : ''}
+                ${part.unit_price ? '<div class="detail-row"><span class="detail-label">单价</span><span class="detail-value" style="color:#96652c;">¥' + pPrice + '</span></div>' : ''}
+                ${imageSrc ? '<div style="margin-top:8px;"><img src="' + imageSrc + '" data-part-id="' + part.id + '" style="max-width:100%;border-radius:8px;" onclick="app.showImageViewer(this.src)"></div><div style="margin-top:6px;"><button type="button" onclick="partsManager.requestDeletePhoto(' + part.id + ')" style="background:#ad5b48;color:#fff;border:none;padding:6px 14px;border-radius:8px;cursor:pointer;font-size:13px;">&#128465; 删除照片</button></div>' : ''}
             </div>
             <div class="detail-section">
                 <h4>存放位置 · 合计剩余 ${total} 件</h4>
-                <div class="stock-by-warehouse">${stockHtml || '<p style="color:#aaa;font-size:13px;">暂无库存分布</p>'}</div>
+                <div class="stock-by-warehouse">${stockHtml || '<p style="color:#8c9181;font-size:13px;">暂无库存分布</p>'}</div>
             </div>
             <div class="form-actions detail-actions">
                 <button class="btn-primary" onclick="partsManager.quickStockFromDetail(${part.id});partsManager.closeDetail();">&#43; 入库</button>
