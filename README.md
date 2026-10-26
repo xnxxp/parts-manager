@@ -1,6 +1,6 @@
 # 配件库存管理：项目交接
 
-更新：2026-10-26（北京时间）；工作目录：D:/APK；当前源码/iOS 交付版本：2.2.4，Android 交付仍为 2.2.3。v2.2.4 温润简约 UI 已通过本机检查、云编译和本地签名；尚未真机安装验证。
+更新：2026-10-26（北京时间）；工作目录：D:/APK；当前源码：2.2.5，已有 iOS 交付：2.2.4，Android 交付：2.2.3。v2.2.5 在温润配色上加入玻璃导航与控件，已通过本机检查，等待新安装包交付；尚未真机安装验证。
 
 ## 目标与验收
 
@@ -8,10 +8,10 @@
 
 ## 已定方案及理由
 
-- 继续使用 Cordova/Android 原生壳。结构化数据存 localStorage 的 parts_manager_{parts,inventory,records,warehouses,prices}，图片存 IndexedDB parts_manager_images；当前实现没有使用 SQLite。inventory 是已有库存明细的数量依据，旧数据缺少明细时兼容 part.qty。
+- 共用网页业务层，Android 沿用既有原生壳，iOS 使用隔离的 Cordova 工程。结构化数据存 localStorage 的 parts_manager_{parts,inventory,records,warehouses,prices}，图片存 IndexedDB parts_manager_images；当前实现没有使用 SQLite。inventory 是已有库存明细的数量依据，旧数据缺少明细时兼容 part.qty。
 - 位置数量、配件总数及流水通过 DB.commitStores 整体提交；parts_manager_stock_journal 保存回滚日志，启动先恢复未完成提交。恢复备份先校验五张表、编号、数量、关联及图片，再用新图片键暂存、整体提交，避免失败时覆盖原照片。
-- 原生保存接口只有一个无请求编号的回调，所以手动导出、图片保存、自动备份串行排队。30 秒无回调会报超时并保留待备份标记；旧结果到达前不发送下一次保存，避免错误归属。自动备份另用数据修订号防止漏掉保存期间的修改。
-- 本次仅修改网页资源，使用已有 APK 壳重打包并沿用原签名；没有升级依赖或重建原生代码，原生变更必须完整构建。未新增仓库管理/调拨界面，仅兼容旧仓库数据和历史调拨记录。
+- Android 原生保存接口只有一个无请求编号的回调，所以手动导出、图片保存、自动备份串行排队。30 秒无回调会报超时并保留待备份标记；旧结果到达前不发送下一次保存，避免错误归属。iOS 使用每请求独立的 Cordova 回调。自动备份另用数据修订号防止漏掉保存期间的修改。
+- Android v2.2.3 使用已有 APK 壳重打包并沿用原签名；iOS 交付经 macOS 云编译和 Windows 本地签名。本次只调整网页外观与版本/缓存，不升级依赖或修改原生接口。未新增仓库管理/调拨界面，仅兼容旧仓库数据和历史调拨记录。
 
 ## 已完成修改
 
@@ -21,11 +21,12 @@
 4. 修复审查确认的五项问题：恢复回滚丢原数据、配件删除部分成功、备份校验不足、图片读取失败仍产出成功备份、共用保存回调误判自动备份成功。照片和价格表删除也在数据提交成功后才清理未被其他条目引用的图片。
 5. v2.2.3 首页精简：统计合并为一行，金额和上次操作收进“概览”；搜索与位置筛选常驻，分类折叠，库存状态使用紧凑分段栏。卡片突出名称、数量与位置，去掉分类彩点/彩边，保留快捷加减，编辑仍可从详情进入；超过两个位置显示“另 N 处”，选定位置时只显示该位置。添加按钮移到右上角，避免遮住卡片操作。本次未修改补货、价格表或导出页功能。
 6. v2.2.4 温润简约 UI：新增离线 `www/css/warm.css`，米白底色和低饱和鼠尾草绿统一首页、补货、价格表、导出及弹窗；导航、导出与照片入口改用本地 SVG 线条图标。导出改为分组列表，自动备份采用带标签的开关；按钮、表单与卡片统一，并修复窄屏弹窗取消按钮被挤成竖排的问题。仅调整界面与版本/缓存，不改库存、持久化或原生接口。
+7. v2.2.5 玻璃质感：参照 Apple Liquid Glass 的导航/控件层次，在 `warm.css` 中加入悬浮胶囊导航、半透明背景模糊、高光边缘、柔和投影、选中胶囊滑动与悬浮圆角弹窗；保留米白/鼠尾草绿及清晰的浅色库存卡片。通过 CSS 能力检测保留旧版 WebKit 的选中样式和不透明降级，响应减少透明度/增强对比度/减少动态效果偏好。属于网页视觉近似，不是 UIKit/SwiftUI 的系统级动态折射材质。
 
 ## 当前分支、文件与交付状态
 
 - D:/APK 及父目录不是 Git 仓库（git rev-parse / git status 均确认，目录无 .git）。本地分支不适用，无法通过 Git 比较未提交改动；另通过 GitHub 接口向已授权的 ios-port 分支同步发布源码。
-- package.json、package-lock.json、config.xml、页面与缓存源码版本均为 2.2.4。Android 平台 assets/www 与 APK 仍保留 2.2.3/20203，本次只重新交付 iOS；未声明旧 APK 含有新版界面。
+- package.json、package-lock.json、config.xml、页面与缓存源码版本均为 2.2.5。Android 平台 assets/www 与 APK 仍保留 2.2.3/20203，本次只重新交付 iOS；未声明旧 APK 含有新版界面。
 - 最新交付：[配件库存管理-v2.2.3.apk](./配件库存管理-v2.2.3.apk)，8,105,173 字节；SHA-256：3BBC6926395A1F0F3D1AE8B0857F147862DB7C0D87600FA835783A47A2CF3131。
 
 ## 测试与证据
@@ -36,6 +37,7 @@
 - 既有浏览器验证：320/390 像素宽度下的库存查询、位置过滤、补货和历史；测试数量 11＋1＝12，背包范围 0＋2＝2。截图位于 build/v2.2.0-{restock,history}-preview.png、build/v2.2.1-stock-preview.png。它们是测试数据，且不代表 v2.2.2 真机验证。
 - v2.2.3 独立浏览器验证：320/390 像素无横向溢出；检查概览展开、分类收起、组合筛选/清除、搜索/空结果、多位置选择、零库存禁用、按选定位置增减、详情及编辑入口、空库存添加。没有页面运行错误。390 像素下首张卡片从约 400px 提前到 312px。截图：build/home-ui-{before,after}-390.png、build/home-ui-after-320.png、build/home-ui-filters-320.png、build/home-ui-location-320.png；均为隔离的测试数据。验证脚本：build/check-home-ui.cjs；打包与资源核对：build/package-home-release.cjs；交付校验信息：build/home-ui-release-result.json。
 - v2.2.4 本地和云端 64 项测试通过。隔离浏览器检查了 320/390/768 像素下的四个页面、详情/编辑/入库/上传/导出弹窗、分类和位置筛选、按位置加减、零库存禁用、自动备份开关与导出到 iOS 适配器；无横向溢出和页面异常。截图等待动画结束，位于 build/warm-{home,restock,price,export,detail,edit,receive,upload,download}-{320,390,768}.png。原生选择器使用模拟，不能替代真机验证。脚本：build/check-warm-ui.cjs；记录：build/warm-ui-checks.json；修改前副本：build/warm-ui-before-20261026/。
+- v2.2.5 本机 64 项测试通过；`build/check-glass-ui.cjs` 检查 320/390/768 像素下的四页及主要弹窗、筛选、位置加减、备份开关与导出，同时确认滚动后末张卡片的加号可点击，以及减少透明度和减少动态效果的降级生效。截图：build/glass-{home,restock,price,export,detail,edit,receive,upload,download,opaque}-{320,390,768}.png。没有横向溢出或页面异常，原生接口仍为模拟。修改前副本：build/glass-ui-before-20261026/。
 
 ## iOS 适配与交付
 

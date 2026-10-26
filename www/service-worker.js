@@ -1,5 +1,5 @@
 // service-worker.js - 离线缓存
-const CACHE_NAME = 'parts-manager-v2.2.4';
+const CACHE_NAME = 'parts-manager-v2.2.5';
 
 const ASSETS = [
     './',

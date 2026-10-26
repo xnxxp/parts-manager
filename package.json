@@ -1,6 +1,6 @@
 {
   "name": "parts-manager",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "手机维修配件库存管理系统",
   "scripts": {
     "test": "node --test tests/*.test.js",
