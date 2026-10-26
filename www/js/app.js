@@ -21,12 +21,82 @@ function showErrorOverlay(text) {
     }
 }
 
+// Escape user-controlled strings before inserting into HTML (text or attribute).
+// Defends against XSS via part name/note/category/price-table title etc.
+function escapeHtml(s) {
+    if (s === null || s === undefined) return '';
+    return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
 const app = {
     currentPage: 'home',
-    currentImageData: null,
+    currentImageData: null,   // base64 shown in edit preview (in-memory)
+    currentImageId: null,     // reference id stored in part.image (IndexedDB key)
     currentExcelData: null,
     _backStack: [],
     _modalStack: [],
+    _nativeSaveQueue: [],
+    _nativeSaveActive: null,
+    _nativeSaveTimeoutMs: 30000,
+
+    blobToBase64(blob) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result.split(',')[1]);
+            reader.onerror = reader.onabort = () => reject(new Error('文件读取失败'));
+            reader.readAsDataURL(blob);
+        });
+    },
+
+    // The existing Android shell reports one untagged callback. Serialize all
+    // three save APIs so each result belongs to exactly one pending operation.
+    saveNative(method, data, fileName, mimeType) {
+        const bridge = window.AndroidBridge;
+        if (!bridge || typeof bridge[method] !== 'function') return Promise.reject(new Error('文件保存不可用'));
+        if (this._nativeSaveActive?.timedOut) return Promise.reject(new Error('上一次保存尚未结束，请稍后再试'));
+        return new Promise((resolve, reject) => {
+            this._nativeSaveQueue.push({ method, data, fileName, mimeType, resolve, reject });
+            this._pumpNativeSave();
+        });
+    },
+
+    _pumpNativeSave() {
+        if (this._nativeSaveActive || !this._nativeSaveQueue.length) return;
+        const job = this._nativeSaveActive = this._nativeSaveQueue.shift();
+        const finish = (error, result) => {
+            if (this._nativeSaveActive !== job) return;
+            clearTimeout(job.timer);
+            this._nativeSaveActive = null;
+            if (!job.timedOut) error ? job.reject(error) : job.resolve(result);
+            this._pumpNativeSave();
+        };
+        window._onSaveFileResult = result => {
+            if (typeof result !== 'string') return;
+            if (result.startsWith('error:')) finish(new Error('保存失败：' + result.slice(6)));
+            else if (result.startsWith('success:')) {
+                const expected = job.method === 'saveImage' ? '图片已保存到 Downloads/PartsManager' : job.fileName;
+                if (result.slice(8) === expected) finish(null, result);
+            }
+        };
+        job.timer = setTimeout(() => {
+            if (this._nativeSaveActive !== job) return;
+            job.timedOut = true;
+            job.reject(new Error('保存未返回结果，请检查下载目录后重试'));
+            for (const queued of this._nativeSaveQueue.splice(0)) queued.reject(new Error('上一次保存尚未结束，请稍后再试'));
+            // Keep this slot until the late callback arrives; advancing now
+            // would allow that late result to complete the next request.
+        }, this._nativeSaveTimeoutMs);
+        try {
+            if (job.method === 'saveImage') window.AndroidBridge.saveImage(job.data, job.fileName);
+            else window.AndroidBridge[job.method](job.data, job.fileName, job.mimeType);
+        }
+        catch (e) { finish(new Error('保存失败：' + e.message)); }
+    },
 
     // Register back button at SCRIPT LOAD TIME - before anything else runs
     _backHandler: function(e) {
@@ -103,6 +173,8 @@ const app = {
     },
 
     async init() {
+        if (this._initialized) return;
+        this._initialized = true;
         try {
             await DB.init();
             if ('serviceWorker' in navigator) {
@@ -110,12 +182,15 @@ const app = {
             }
         } catch (e) {
             console.error('DB init failed:', e);
+            showErrorOverlay('数据初始化失败：' + e.message);
+            return;
         }
         document.getElementById('splash').style.display = 'none';
         document.getElementById('main-app').style.display = 'block';
         const fab = document.getElementById('fab-add');
         if (fab) fab.style.display = '';
         this.refreshDashboard();
+        this._initAutoBackup();
 
         // Click outside modal content = close modal
         document.addEventListener('click', function(e) {
@@ -141,7 +216,8 @@ const app = {
             longPressTarget = e.target;
             longPressTimer = setTimeout(function() {
                 if (longPressTarget && typeof partsManager !== 'undefined' && partsManager.showSaveImageModal) {
-                    partsManager.showSaveImageModal(longPressTarget.src);
+                    const pid = longPressTarget.dataset ? longPressTarget.dataset.partId : null;
+                    partsManager.showSaveImageModal(longPressTarget.src, pid);
                 }
                 longPressTimer = null;
                 longPressTarget = null;
@@ -170,7 +246,12 @@ const app = {
         const fab = document.getElementById('fab-add');
         if (fab) fab.style.display = page === 'home' ? '' : 'none';
         if (page === 'home') this.refreshDashboard();
+        if (page === 'restock') restockManager.load();
         if (page === 'price') priceManager.load();
+        if (page === 'export') {
+            const t = document.getElementById('auto-backup-toggle');
+            if (t) t.checked = this.autoBackupEnabled;
+        }
     },
 
     refreshDashboard() {
@@ -178,12 +259,15 @@ const app = {
         if (this.currentPage === 'home') {
             partsManager.load();
         }
+        if (this.currentPage === 'restock') restockManager.load();
     },
 
     async updateStatsBar() {
         const parts = await DB.all('parts');
         const inventory = await DB.all('inventory');
         const records = await DB.all('records');
+        const warehouses = await DB.all('warehouses');
+        document.getElementById('restock-count').textContent = Stock.replenishment(parts, inventory, warehouses).length;
 
         // Total value = sum of (unit_price * qty) for all parts with inventory
         const invMap = {};
@@ -198,7 +282,9 @@ const app = {
 
         document.getElementById('stat-total-value').textContent = '¥' + totalValue.toLocaleString();
         document.getElementById('stat-parts').textContent = parts.length;
-        document.getElementById('stat-stock').textContent = inventory.reduce((s, r) => s + (r.qty || 0), 0);
+        // Status chips and the header share the search/category/location scope;
+        // selecting a status only changes the list, never this partition total.
+        partsManager.updateStockTotal(Stock.scope(Stock.rows(parts, inventory, warehouses), partsManager.scopeFilters()));
 
         if (records.length) {
             records.sort((a, b) => b.created_at - a.created_at);
@@ -341,6 +427,37 @@ const app = {
         }, 250);
     },
 
+    // Compress a base64 image data URL: scale down to maxDim (longest side)
+    // and re-encode as JPEG. Greatly reduces storage size for part photos.
+    async compressImage(dataURL, maxDim = 1280, quality = 0.72) {
+        return new Promise((resolve, reject) => {
+            try {
+                const src = dataURL.indexOf('data:') === 0 ? dataURL : 'data:image/jpeg;base64,' + dataURL;
+                const img = new Image();
+                img.onload = () => {
+                    let w = img.naturalWidth || img.width;
+                    let h = img.naturalHeight || img.height;
+                    if (!w || !h) { resolve(src); return; }
+                    // Already within the max dimension -> skip re-encoding. This
+                    // avoids a second lossy JPEG pass, notably for photos already
+                    // compressed by the native camera bridge (~1024px), which
+                    // would otherwise be needlessly re-encoded at lower quality.
+                    if (w <= maxDim && h <= maxDim) { resolve(src); return; }
+                    if (w > h && w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; }
+                    else if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; }
+                    const canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, w, h);
+                    try { resolve(canvas.toDataURL('image/jpeg', quality)); }
+                    catch (e) { resolve(src); } // fallback to original on failure
+                };
+                img.onerror = () => reject(new Error('image decode failed'));
+                img.src = src;
+            } catch (e) { reject(e); }
+        });
+    },
+
     closeEditStock() {
         document.getElementById('modal-edit-stock').style.display = 'none';
     },
@@ -415,19 +532,6 @@ const app = {
         input.click();
     },
 
-    // Called by native AndroidBridge when camera/gallery result is ready
-    _onCameraResult(id, data) {
-        var cb = this._cameraCallbacks[id];
-        if (cb) {
-            delete this._cameraCallbacks[id];
-            if (data.indexOf('__ERROR__:') === 0) {
-                console.warn('Camera error:', data);
-            } else {
-                cb(data);
-            }
-        }
-    },
-
     confirmExit() {
         // Try native bridge first (most reliable), fallback to Cordova exitApp
         if (window.AndroidBridge && AndroidBridge.finishApp) {
@@ -440,6 +544,75 @@ const app = {
 
     closeExitModal() {
         app._closeModal('modal-exit');
+    },
+
+    // ===== Auto backup (data-loss safeguard) =====
+    // Backups are written to the shared Download/PartsManager MediaStore collection,
+    // which survives "clear app data". When the app goes to the background, if any
+    // data changed since the last backup, a single rolling file is re-written silently.
+    autoBackupEnabled: true,
+
+    _initAutoBackup() {
+        try { this.autoBackupEnabled = localStorage.getItem('pm_auto_backup') !== '0'; } catch (e) {}
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) this.doAutoBackup();
+        });
+        window.addEventListener('pagehide', () => this.doAutoBackup());
+        this._maybeShowBackupTip();
+    },
+
+    setAutoBackup(enabled) {
+        this.autoBackupEnabled = !!enabled;
+        try { localStorage.setItem('pm_auto_backup', enabled ? '1' : '0'); } catch (e) {}
+        app.showToast(enabled ? '已开启自动备份' : '已关闭自动备份');
+    },
+
+    async doAutoBackup() {
+        if (!this._initialized || !this.autoBackupEnabled) return;
+        if (this._autoBackupBusy || partsManager._stockBusy) return;
+        if (!DB.isBackupDirty()) return; // nothing changed -> skip
+        this._autoBackupBusy = true;
+        try {
+            const revBefore = DB.getBackupRev ? DB.getBackupRev() : 0;
+            const blob = await exportManager._buildBackupBlob();
+            const revAfter = DB.getBackupRev ? DB.getBackupRev() : 0;
+            // The snapshot is built inside _buildBackupBlob (which awaits image
+            // export), so a mutation can land mid-snapshot. Take the LOWER of
+            // the two revisions: it may or may not be reflected in the data we
+            // captured, and under-reporting only costs one redundant backup.
+            const snapshotRev = Math.min(revBefore, revAfter);
+            if (window.AndroidBridge && window.AndroidBridge.saveFileReplace) {
+                const base64 = await this.blobToBase64(blob);
+                await this.saveNative('saveFileReplace', base64, '配件库存自动备份.json', 'application/json');
+                if (DB.getBackupRev() === snapshotRev) DB.clearBackupDirty();
+            }
+        } catch (e) {
+            console.warn('auto backup failed', e);
+        } finally { this._autoBackupBusy = false; }
+    },
+
+    // One-time safety-net tip for users who already have data (nothing to lose yet for new users)
+    _maybeShowBackupTip() {
+        try { if (localStorage.getItem('pm_backup_tip_seen') === '1') return; } catch (e) {}
+        DB.all('parts').then(parts => {
+            DB.all('inventory').then(inv => {
+                const hasData = (parts && parts.length) || (inv && inv.length);
+                if (!hasData) return;
+                const m = document.getElementById('modal-backup-tip');
+                if (m) app._openModal('modal-backup-tip');
+            });
+        });
+    },
+
+    backupTipNow() {
+        app._closeModal('modal-backup-tip');
+        try { localStorage.setItem('pm_backup_tip_seen', '1'); } catch (e) {}
+        exportManager.backupData();
+    },
+
+    backupTipLater() {
+        app._closeModal('modal-backup-tip');
+        try { localStorage.setItem('pm_backup_tip_seen', '1'); } catch (e) {}
     }
 };
 
@@ -451,6 +624,8 @@ document.addEventListener('backbutton', app._backHandler, false);
 document.addEventListener('deviceready', () => {
     // Re-register to be absolutely sure
     document.addEventListener('backbutton', app._backHandler, false);
+    // 兜底：原生 splash 可能未及时隐藏时，确保开屏消失
+    try { if (navigator.splashscreen) navigator.splashscreen.hide(); } catch (e) {}
 }, false);
 
 document.addEventListener('DOMContentLoaded', () => app.init());

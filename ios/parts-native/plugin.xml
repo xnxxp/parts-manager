@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<plugin xmlns="http://apache.org/cordova/ns/plugins/1.0" id="cordova-plugin-parts-ios" version="1.0.0">
+    <name>PartsIOS</name>
+    <engines><engine name="cordova-ios" version=">=8.1.1" /></engines>
+    <platform name="ios">
+        <config-file target="config.xml" parent="/*">
+            <feature name="PartsIOS"><param name="ios-package" value="PMNativePlugin" /></feature>
+        </config-file>
+        <config-file target="*-Info.plist" parent="NSCameraUsageDescription"><string>拍摄配件及价格表照片</string></config-file>
+        <config-file target="*-Info.plist" parent="NSPhotoLibraryUsageDescription"><string>选择配件及价格表照片</string></config-file>
+        <config-file target="*-Info.plist" parent="UIFileSharingEnabled"><true /></config-file>
+        <config-file target="*-Info.plist" parent="LSSupportsOpeningDocumentsInPlace"><true /></config-file>
+        <config-file target="*-Info.plist" parent="CFBundleDisplayName"><string>配件库存管理</string></config-file>
+        <source-file src="src/ios/PMNativePlugin.m" />
+        <framework src="UIKit.framework" />
+    </platform>
+</plugin>

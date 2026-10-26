@@ -1,16 +1,19 @@
 {
   "name": "parts-manager",
-  "version": "2.0.20",
+  "version": "2.2.3",
   "description": "手机维修配件库存管理系统",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "node scripts/serve.js"
+  },
   "dependencies": {
-    "cordova-android": "^14.0.1",
-    "docx": "^9.7.1"
+    "cordova-android": "^12.0.1"
   },
   "devDependencies": {
-    "cordova-plugin-camera": "^7.0.0",
-    "cordova-plugin-file": "^8.0.0",
-    "cordova-plugin-filepath": "^1.6.0",
-    "cordova-sqlite-storage": "^6.0.0"
+    "cordova-sqlite-storage": "^6.0.0",
+    "cordova-plugin-camera": "^6.0.0",
+    "cordova-plugin-file": "^7.0.0",
+    "cordova-plugin-filepath": "^1.6.0"
   },
   "cordova": {
     "plugins": {
@@ -24,9 +27,6 @@
         "ANDROIDX_LEGACY_CORE": "true"
       },
       "cordova-plugin-filepath": {}
-    },
-    "platforms": [
-      "android"
-    ]
+    }
   }
 }

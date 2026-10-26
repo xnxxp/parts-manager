@@ -1,0 +1,7 @@
+{
+  "name": "cordova-plugin-parts-ios",
+  "version": "1.0.0",
+  "description": "iOS file export, local backup and photo bridge for PartsManager",
+  "cordova": { "id": "cordova-plugin-parts-ios", "platforms": ["ios"] },
+  "license": "UNLICENSED"
+}

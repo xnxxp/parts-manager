@@ -1,20 +1,21 @@
 // service-worker.js - 离线缓存
-const CACHE_NAME = 'parts-manager-v2';
+const CACHE_NAME = 'parts-manager-v2.2.3';
 
 const ASSETS = [
     './',
     './index.html',
     './manifest.json',
     './css/style.css',
-    './js/app.js',
     './js/database.js',
-    './js/dashboard.js',
+    './js/app.js',
+    './js/stock.js',
+    './js/restock.js',
     './js/parts.js',
-    './js/warehouse.js',
-    './js/inventory.js',
+    './js/catalog.js',
     './js/price.js',
     './js/export.js',
-    './libs/xlsx.full.min.js'
+    './libs/xlsx.full.min.js',
+    './libs/jszip.min.js'
 ];
 
 self.addEventListener('install', event => {

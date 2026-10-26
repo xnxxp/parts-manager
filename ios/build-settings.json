@@ -1,0 +1,6 @@
+{
+  "bundleId": "app.hercules2111.kiwi7320",
+  "cordovaVersion": "13.0.0",
+  "iosPlatformVersion": "8.1.1",
+  "minimumIOSVersion": "13.0"
+}
