@@ -26,8 +26,8 @@ jobs:
           npx --yes cordova@13.0.0 prepare ios
       - name: Compile the device application
         run: |
-          xcodebuild -workspace build/ios-project/platforms/ios/PartsManager.xcworkspace \
-            -scheme PartsManager -configuration Release -sdk iphoneos \
+          xcodebuild -workspace build/ios-project/platforms/ios/App.xcworkspace \
+            -scheme App -configuration Release -sdk iphoneos \
             -destination 'generic/platform=iOS' -derivedDataPath "$RUNNER_TEMP/PartsDerived" \
             ARCHS=arm64 CODE_SIGNING_ALLOWED=NO build
           test -d "$RUNNER_TEMP/PartsDerived/Build/Products/Release-iphoneos/PartsManager.app"
