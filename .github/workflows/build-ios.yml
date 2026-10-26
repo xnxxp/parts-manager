@@ -5,6 +5,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ios-port-build
+  cancel-in-progress: true
 jobs:
   ios:
     runs-on: macos-15
@@ -18,12 +21,21 @@ jobs:
         run: |
           npm test
           node scripts/prepare-ios.js
+      - name: Install Cordova CLI
+        timeout-minutes: 4
+        run: npm install --global cordova@13.0.0 --loglevel=info
       - name: Generate the Xcode project
+        timeout-minutes: 4
         working-directory: build/ios-project
-        run: |
-          npx --yes cordova@13.0.0 platform add ios@8.1.1
-          npx --yes cordova@13.0.0 plugin add ./local-plugins/parts-ios
-          npx --yes cordova@13.0.0 prepare ios
+        run: cordova platform add ios@8.1.1 --verbose
+      - name: Install native iOS bridge
+        timeout-minutes: 4
+        working-directory: build/ios-project
+        run: cordova plugin add ./local-plugins/parts-ios --verbose
+      - name: Prepare iOS web resources
+        timeout-minutes: 4
+        working-directory: build/ios-project
+        run: cordova prepare ios --verbose
       - name: Compile the device application
         run: |
           xcodebuild -workspace build/ios-project/platforms/ios/App.xcworkspace \
